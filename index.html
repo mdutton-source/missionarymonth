@@ -3,42 +3,54 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Missionary Mode – Battle of the Zones</title>
+  <title>Missionary Mode - Battle of the Zones</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #0d1117; font-family: Georgia, 'Times New Roman', serif; color: #e6edf3; }
-    ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: #0d1117; } ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 2px; }
+    body { background: #0d1117; font-family: Georgia, serif; color: #e6edf3; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: #0d1117; }
+    ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 2px; }
   </style>
 </head>
 <body>
   <div id="root"></div>
   <script type="text/babel">
     const { useState, useEffect } = React;
+
     const storage = {
-      get: (key) => { try { const v = localStorage.getItem(key); return v ? { value: v } : null; } catch(e) { return null; } },
-      set: (key, value) => { try { localStorage.setItem(key, value); return true; } catch(e) { return null; } }
+      get: function(key) {
+        try { var v = localStorage.getItem(key); return v ? { value: v } : null; } catch(e) { return null; }
+      },
+      set: function(key, value) {
+        try { localStorage.setItem(key, value); return true; } catch(e) { return null; }
+      }
     };
-    const ZONES = ["New Jersey", "Philippines", "Slovenia", "Oklahoma", "South Africa", "Venezuela"];
-    const ZONE_COLORS = {
+
+    var ZONES = ["New Jersey", "Philippines", "Slovenia", "Oklahoma", "South Africa", "Venezuela"];
+
+    var ZONE_COLORS = {
       "New Jersey":   { bg: "#1a3a5c", accent: "#4a9eda", flag: "🗽" },
       "Philippines":  { bg: "#0038a8", accent: "#ce1127", flag: "🇵🇭" },
       "Slovenia":     { bg: "#003DA5", accent: "#6ca0dc", flag: "🇸🇮" },
       "Oklahoma":     { bg: "#330000", accent: "#cc0000", flag: "🌾" },
       "South Africa": { bg: "#007A4D", accent: "#FFB612", flag: "🇿🇦" },
-      "Venezuela":    { bg: "#CF142B", accent: "#6699cc", flag: "🇻🇪" },
+      "Venezuela":    { bg: "#CF142B", accent: "#6699cc", flag: "🇻🇪" }
     };
-    const MISSION_START = new Date("2026-03-01");
-    const MISSION_END   = new Date("2026-03-31");
-    const WEEKS = [
+
+    var MISSION_START = new Date("2026-03-01");
+    var MISSION_END   = new Date("2026-03-31");
+
+    var WEEKS = [
       { label: "Week 1", start: new Date("2026-03-01"), end: new Date("2026-03-07") },
       { label: "Week 2", start: new Date("2026-03-08"), end: new Date("2026-03-14") },
       { label: "Week 3", start: new Date("2026-03-15"), end: new Date("2026-03-21") },
-      { label: "Week 4", start: new Date("2026-03-22"), end: new Date("2026-03-31") },
+      { label: "Week 4", start: new Date("2026-03-22"), end: new Date("2026-03-31") }
     ];
-    const DAILY_HABITS = [
+
+    var DAILY_HABITS = [
       { id: "morning_prayer",  label: "Morning Prayer",     category: "spiritual", points: 1, icon: "🌅" },
       { id: "scripture_study", label: "Scripture Study",    category: "spiritual", points: 1, icon: "📖" },
       { id: "evening_prayer",  label: "Evening Prayer",     category: "spiritual", points: 1, icon: "🌙" },
@@ -47,64 +59,605 @@
       { id: "say_hi",          label: "Say Hi to 5 People", category: "social",    points: 1, icon: "👋" },
       { id: "present",         label: "Be Fully Present",   category: "social",    points: 1, icon: "📵" },
       { id: "gratitude",       label: "Write 3 Gratitudes", category: "emotional", points: 1, icon: "🙏" },
-      { id: "limit_social",    label: "Limit Social Media", category: "emotional", points: 1, icon: "🚫" },
+      { id: "limit_social",    label: "Limit Social Media", category: "emotional", points: 1, icon: "🚫" }
     ];
-    const WEEKLY_CHALLENGES = [
+
+    var WEEKLY_CHALLENGES = [
       { id: "attend_church", label: "Attend Church (both hours)",            category: "spiritual", points: 5, icon: "⛪" },
       { id: "laundry_meals", label: "Do Laundry OR Help Cook/Clean 2 Meals", category: "physical",  points: 5, icon: "🧺" },
-      { id: "open_doors",    label: "Open Doors & Greet Others",             category: "social",    points: 5, icon: "🚪" },
-      { id: "mindset_reset", label: "Mindset Reset (3 days)",                category: "emotional", points: 5, icon: "🧠" },
+      { id: "open_doors",    label: "Open Doors and Greet Others",           category: "social",    points: 5, icon: "🚪" },
+      { id: "mindset_reset", label: "Mindset Reset (3 days)",                category: "emotional", points: 5, icon: "🧠" }
     ];
-    const BONUS_CHALLENGES = [
+
+    var BONUS_CHALLENGES = [
       { id: "week1_bonus", label: "Week 1: Attend Temple Baptism Session",     week: 1, points: 10, icon: "✨" },
       { id: "week2_bonus", label: "Week 2: Missionary Circuit or 8K Steps",    week: 2, points: 10, icon: "🏋️" },
       { id: "week3_bonus", label: "Week 3: Find the One (invite someone new)", week: 3, points: 10, icon: "🎯" },
-      { id: "week4_bonus", label: "Week 4: Bear Testimony + Journal",          week: 4, points: 10, icon: "💥" },
+      { id: "week4_bonus", label: "Week 4: Bear Testimony + Journal",          week: 4, points: 10, icon: "💥" }
     ];
-    const CATEGORY_STYLES = {
+
+    var CATEGORY_STYLES = {
       spiritual: { color: "#f0c040", label: "Spiritual", icon: "✨" },
       physical:  { color: "#4ade80", label: "Physical",  icon: "💪" },
       social:    { color: "#60a5fa", label: "Social",    icon: "🤝" },
-      emotional: { color: "#f472b6", label: "Emotional", icon: "🧠" },
+      emotional: { color: "#f472b6", label: "Emotional", icon: "🧠" }
     };
-    const DAY_NAMES   = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-    const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-    function dateToKey(d) { return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`; }
+
+    var DAY_NAMES   = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+    var MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    var WEEK_RANGES = ["","1-7","8-14","15-21","22-31"];
+
+    function dateToKey(d) {
+      return d.getFullYear() + "-" + (d.getMonth()+1) + "-" + d.getDate();
+    }
     function getTodayKey() { return dateToKey(new Date()); }
-    function getCurrentWeek() { const now=new Date(); for(let i=0;i<WEEKS.length;i++) if(now>=WEEKS[i].start&&now<=WEEKS[i].end) return i+1; return 4; }
-    function getWeekForDate(d) { for(let i=0;i<WEEKS.length;i++) if(d>=WEEKS[i].start&&d<=WEEKS[i].end) return i+1; return null; }
-    function getMissionDays() { const days=[]; const today=new Date(); today.setHours(23,59,59,999); const cur=new Date(MISSION_START); while(cur<=today&&cur<=MISSION_END){days.push(new Date(cur));cur.setDate(cur.getDate()+1);} return days.reverse(); }
-    function calcUserPoints(user) { let pts=0; Object.values(user.days||{}).forEach(day=>DAILY_HABITS.forEach(h=>{if(day[h.id])pts+=h.points;})); Object.values(user.weeks||{}).forEach(wk=>WEEKLY_CHALLENGES.forEach(c=>{if(wk[c.id])pts+=c.points;})); BONUS_CHALLENGES.forEach(b=>{if((user.bonus||{})[b.id])pts+=b.points;}); return pts; }
+
+    function getCurrentWeek() {
+      var now = new Date();
+      for (var i = 0; i < WEEKS.length; i++) {
+        if (now >= WEEKS[i].start && now <= WEEKS[i].end) return i + 1;
+      }
+      return 4;
+    }
+
+    function getWeekForDate(d) {
+      for (var i = 0; i < WEEKS.length; i++) {
+        if (d >= WEEKS[i].start && d <= WEEKS[i].end) return i + 1;
+      }
+      return null;
+    }
+
+    function getMissionDays() {
+      var days = [];
+      var today = new Date();
+      today.setHours(23,59,59,999);
+      var cur = new Date(MISSION_START);
+      while (cur <= today && cur <= MISSION_END) {
+        days.push(new Date(cur));
+        cur.setDate(cur.getDate() + 1);
+      }
+      return days.reverse();
+    }
+
+    function calcUserPoints(user) {
+      var pts = 0;
+      Object.values(user.days || {}).forEach(function(day) {
+        DAILY_HABITS.forEach(function(h) { if (day[h.id]) pts += h.points; });
+      });
+      Object.values(user.weeks || {}).forEach(function(wk) {
+        WEEKLY_CHALLENGES.forEach(function(c) { if (wk[c.id]) pts += c.points; });
+      });
+      BONUS_CHALLENGES.forEach(function(b) {
+        if ((user.bonus || {})[b.id]) pts += b.points;
+      });
+      return pts;
+    }
+
+    function groupByCategory(habits) {
+      var groups = {};
+      habits.forEach(function(h) {
+        if (!groups[h.category]) groups[h.category] = [];
+        groups[h.category].push(h);
+      });
+      return groups;
+    }
+
     function App() {
-      const [screen,setScreen]=useState("home");
-      const [currentUser,setCurrentUser]=useState(null);
-      const [nameInput,setNameInput]=useState("");
-      const [zoneInput,setZoneInput]=useState("");
-      const [allUsers,setAllUsers]=useState({});
-      const [selectedDateKey,setSelectedDateKey]=useState(getTodayKey());
-      const [activeTab,setActiveTab]=useState("daily");
-      const [loading,setLoading]=useState(true);
-      const [toast,setToast]=useState(null);
-      const [showDatePicker,setShowDatePicker]=useState(false);
-      const todayKey=getTodayKey(); const currentWeek=getCurrentWeek(); const missionDays=getMissionDays();
-      const selectedDate=(()=>{const p=selectedDateKey.split("-");return new Date(+p[0],+p[1]-1,+p[2]);})();
-      const selectedWeek=getWeekForDate(selectedDate); const weekKey=selectedWeek?`week${selectedWeek}`:null; const isToday=selectedDateKey===todayKey;
-      const dayChecked=currentUser?.days?.[selectedDateKey]||{}; const weekChecked=(weekKey&&currentUser?.weeks?.[weekKey])||{}; const bonusChecked=currentUser?.bonus||{};
-      useEffect(()=>{ try{const raw=storage.get("mission_users");if(raw)setAllUsers(JSON.parse(raw.value));}catch(e){} setLoading(false); },[]);
-      const showToast=(msg,type="success")=>{setToast({msg,type});setTimeout(()=>setToast(null),2500);};
-      const saveAllData=(users)=>{try{storage.set("mission_users",JSON.stringify(users));}catch(e){showToast("Error saving","error");}};
-      const handleLogin=()=>{ const name=nameInput.trim();if(!name)return; const key=name.toLowerCase(); if(allUsers[key]){setCurrentUser(allUsers[key]);setSelectedDateKey(todayKey);setScreen("dashboard");}else setScreen("register"); };
-      const handleRegister=()=>{ if(!zoneInput)return; const name=nameInput.trim();const key=name.toLowerCase(); const newUser={name,zone:zoneInput,days:{},weeks:{},bonus:{}}; const updated={...allUsers,[key]:newUser}; setAllUsers(updated);saveAllData(updated);setCurrentUser(newUser);setSelectedDateKey(todayKey);setScreen("dashboard");showToast(`Welcome, ${name}! 🎉`); };
-      const updateUser=(u)=>{ const key=u.name.toLowerCase(); const updated={...allUsers,[key]:u}; setCurrentUser(u);setAllUsers(updated);saveAllData(updated); };
-      const toggleDaily=(id)=>{ const cur=currentUser.days?.[selectedDateKey]||{};const was=!!cur[id]; updateUser({...currentUser,days:{...currentUser.days,[selectedDateKey]:{...cur,[id]:!was}}});if(!was)showToast("+1 point!"); };
-      const toggleWeekly=(id)=>{ if(!weekKey)return;const cur=currentUser.weeks?.[weekKey]||{};const was=!!cur[id]; updateUser({...currentUser,weeks:{...currentUser.weeks,[weekKey]:{...cur,[id]:!was}}});if(!was)showToast("+5 points!"); };
-      const toggleBonus=(id)=>{ const cur=currentUser.bonus||{};const was=!!cur[id]; updateUser({...currentUser,bonus:{...cur,[id]:!was}});if(!was)showToast("+10 BONUS points! 🔥"); };
-      const userTotal=currentUser?calcUserPoints(currentUser):0;
-      const getDayPts=(dk)=>{ if(!currentUser)return 0;const d=currentUser.days?.[dk]||{};return DAILY_HABITS.reduce((s,h)=>s+(d[h.id]?h.points:0),0); };
-      const formatDate=(dk)=>{ const p=dk.split("-");const d=new Date(+p[0],+p[1]-1,+p[2]);if(dk===todayKey)return"Today";const y=new Date();y.setDate(y.getDate()-1);if(dk===dateToKey(y))return"Yesterday";return`${DAY_NAMES[d.getDay()]}, ${MONTH_NAMES[d.getMonth()]} ${d.getDate()}`; };
-      const getZoneScores=()=>{ const sc={};ZONES.forEach(z=>{sc[z]={total:0,members:0};});Object.values(allUsers).forEach(u=>{if(sc[u.zone]!==undefined){sc[u.zone].total+=calcUserPoints(u);sc[u.zone].members+=1;}});return Object.entries(sc).map(([zone,data])=>({zone,...data})).sort((a,b)=>b.total-a.total); };
-      const S={
-        app:{minHeight:"100vh",background:"linear-gradient(135deg,#0d1117 0%,#161b22 50%,#0d1117 100%)",fontFamily:"Georgia,'Times New Roman',serif",color:"#e6edf3",position:"relative"},
-        globe:{position:"fixed",top:"-100px",right:"-100px",width:"400px",height:"400px",borderRadius:"50%",background:"radial-gradient(circle at 35% 35%,#1a3a5c,#0d1117)",border:"1px solid #30363d",opacity:0.25,zIndex:0,pointerEvents:"none"},
-        wrap:{maxWidth:"480px",margin:"0 auto",padding:"0 16px",position:"relative",zIndex:1},
-        hdr:{textAlign:"center",padding:"2
+      var todayKey = getTodayKey();
+      var currentWeek = getCurrentWeek();
+      var missionDays = getMissionDays();
+
+      var screenState = useState("home");
+      var screen = screenState[0]; var setScreen = screenState[1];
+      var currentUserState = useState(null);
+      var currentUser = currentUserState[0]; var setCurrentUser = currentUserState[1];
+      var nameInputState = useState("");
+      var nameInput = nameInputState[0]; var setNameInput = nameInputState[1];
+      var zoneInputState = useState("");
+      var zoneInput = zoneInputState[0]; var setZoneInput = zoneInputState[1];
+      var allUsersState = useState({});
+      var allUsers = allUsersState[0]; var setAllUsers = allUsersState[1];
+      var selectedDateKeyState = useState(todayKey);
+      var selectedDateKey = selectedDateKeyState[0]; var setSelectedDateKey = selectedDateKeyState[1];
+      var activeTabState = useState("daily");
+      var activeTab = activeTabState[0]; var setActiveTab = activeTabState[1];
+      var loadingState = useState(true);
+      var loading = loadingState[0]; var setLoading = loadingState[1];
+      var toastState = useState(null);
+      var toast = toastState[0]; var setToast = toastState[1];
+      var showDatePickerState = useState(false);
+      var showDatePicker = showDatePickerState[0]; var setShowDatePicker = showDatePickerState[1];
+
+      var selParts = selectedDateKey.split("-");
+      var selectedDate = new Date(+selParts[0], +selParts[1]-1, +selParts[2]);
+      var selectedWeek = getWeekForDate(selectedDate);
+      var weekKey = selectedWeek ? ("week" + selectedWeek) : null;
+      var isToday = selectedDateKey === todayKey;
+
+      var dayChecked   = (currentUser && currentUser.days && currentUser.days[selectedDateKey]) || {};
+      var weekChecked  = (weekKey && currentUser && currentUser.weeks && currentUser.weeks[weekKey]) || {};
+      var bonusChecked = (currentUser && currentUser.bonus) || {};
+
+      useEffect(function() {
+        try {
+          var raw = storage.get("mission_users");
+          if (raw) setAllUsers(JSON.parse(raw.value));
+        } catch(e) {}
+        setLoading(false);
+      }, []);
+
+      function showToast(msg, type) {
+        setToast({ msg: msg, type: type || "success" });
+        setTimeout(function() { setToast(null); }, 2500);
+      }
+
+      function saveAllData(users) {
+        try { storage.set("mission_users", JSON.stringify(users)); }
+        catch(e) { showToast("Error saving", "error"); }
+      }
+
+      function handleLogin() {
+        var name = nameInput.trim();
+        if (!name) return;
+        var key = name.toLowerCase();
+        if (allUsers[key]) {
+          setCurrentUser(allUsers[key]);
+          setSelectedDateKey(todayKey);
+          setScreen("dashboard");
+        } else {
+          setScreen("register");
+        }
+      }
+
+      function handleRegister() {
+        if (!zoneInput) return;
+        var name = nameInput.trim();
+        var key = name.toLowerCase();
+        var newUser = { name: name, zone: zoneInput, days: {}, weeks: {}, bonus: {} };
+        var updated = Object.assign({}, allUsers);
+        updated[key] = newUser;
+        setAllUsers(updated);
+        saveAllData(updated);
+        setCurrentUser(newUser);
+        setSelectedDateKey(todayKey);
+        setScreen("dashboard");
+        showToast("Welcome, " + name + "! 🎉");
+      }
+
+      function updateUser(updatedUser) {
+        var key = updatedUser.name.toLowerCase();
+        var updated = Object.assign({}, allUsers);
+        updated[key] = updatedUser;
+        setCurrentUser(updatedUser);
+        setAllUsers(updated);
+        saveAllData(updated);
+      }
+
+      function toggleDaily(id) {
+        var cur = (currentUser.days && currentUser.days[selectedDateKey]) || {};
+        var was = !!cur[id];
+        var newDay = Object.assign({}, cur);
+        newDay[id] = !was;
+        var newDays = Object.assign({}, currentUser.days);
+        newDays[selectedDateKey] = newDay;
+        updateUser(Object.assign({}, currentUser, { days: newDays }));
+        if (!was) showToast("+1 point!");
+      }
+
+      function toggleWeekly(id) {
+        if (!weekKey) return;
+        var cur = (currentUser.weeks && currentUser.weeks[weekKey]) || {};
+        var was = !!cur[id];
+        var newWeek = Object.assign({}, cur);
+        newWeek[id] = !was;
+        var newWeeks = Object.assign({}, currentUser.weeks);
+        newWeeks[weekKey] = newWeek;
+        updateUser(Object.assign({}, currentUser, { weeks: newWeeks }));
+        if (!was) showToast("+5 points!");
+      }
+
+      function toggleBonus(id) {
+        var cur = currentUser.bonus || {};
+        var was = !!cur[id];
+        var newBonus = Object.assign({}, cur);
+        newBonus[id] = !was;
+        updateUser(Object.assign({}, currentUser, { bonus: newBonus }));
+        if (!was) showToast("+10 BONUS points! 🔥");
+      }
+
+      var userTotal = currentUser ? calcUserPoints(currentUser) : 0;
+
+      function getDayPts(dk) {
+        if (!currentUser) return 0;
+        var d = (currentUser.days && currentUser.days[dk]) || {};
+        return DAILY_HABITS.reduce(function(s, h) { return s + (d[h.id] ? h.points : 0); }, 0);
+      }
+
+      function formatDate(dk) {
+        var p = dk.split("-");
+        var d = new Date(+p[0], +p[1]-1, +p[2]);
+        if (dk === todayKey) return "Today";
+        var y = new Date(); y.setDate(y.getDate()-1);
+        if (dk === dateToKey(y)) return "Yesterday";
+        return DAY_NAMES[d.getDay()] + ", " + MONTH_NAMES[d.getMonth()] + " " + d.getDate();
+      }
+
+      function getZoneScores() {
+        var sc = {};
+        ZONES.forEach(function(z) { sc[z] = { total: 0, members: 0 }; });
+        Object.values(allUsers).forEach(function(u) {
+          if (sc[u.zone] !== undefined) {
+            sc[u.zone].total += calcUserPoints(u);
+            sc[u.zone].members += 1;
+          }
+        });
+        return Object.entries(sc).map(function(e) {
+          return Object.assign({ zone: e[0] }, e[1]);
+        }).sort(function(a, b) { return b.total - a.total; });
+      }
+
+      var zoneScores = getZoneScores();
+      var maxZonePts = Math.max.apply(null, zoneScores.map(function(z) { return z.total; }).concat([1]));
+
+      // ---- styles as plain objects ----
+      var appStyle = {
+        minHeight: "100vh",
+        background: "linear-gradient(135deg, #0d1117 0%, #161b22 50%, #0d1117 100%)",
+        fontFamily: "Georgia, serif",
+        color: "#e6edf3",
+        position: "relative"
+      };
+      var wrapStyle = { maxWidth: "480px", margin: "0 auto", padding: "0 16px", position: "relative", zIndex: 1 };
+      var hdrStyle = { textAlign: "center", padding: "28px 0 16px" };
+      var titleStyle = { fontSize: "26px", fontWeight: "900", letterSpacing: "2px", textTransform: "uppercase", color: "#fff", margin: 0, lineHeight: "1.1" };
+      var subStyle = { fontSize: "11px", letterSpacing: "4px", color: "#8b949e", textTransform: "uppercase", marginTop: "6px" };
+      var lineStyle = { width: "60px", height: "2px", background: "linear-gradient(90deg, transparent, #f0c040, transparent)", margin: "10px auto" };
+      var cardStyle = { background: "rgba(22,27,34,0.9)", border: "1px solid #30363d", borderRadius: "12px", padding: "18px", marginBottom: "14px" };
+      var inputStyle = { width: "100%", background: "#0d1117", border: "1px solid #30363d", borderRadius: "8px", padding: "12px 16px", color: "#e6edf3", fontSize: "16px", fontFamily: "Georgia, serif", outline: "none", boxSizing: "border-box" };
+      var btnStyle = { width: "100%", padding: "13px", borderRadius: "8px", border: "none", background: "linear-gradient(135deg, #f0c040, #d4a017)", color: "#0d1117", fontSize: "13px", fontWeight: "700", letterSpacing: "2px", textTransform: "uppercase", cursor: "pointer", marginTop: "10px", display: "block" };
+      var ghostStyle = { background: "transparent", border: "1px solid #30363d", color: "#8b949e" };
+      var badgeStyle = { display: "inline-flex", alignItems: "center", gap: "5px", background: "rgba(240,192,64,0.15)", border: "1px solid rgba(240,192,64,0.4)", borderRadius: "20px", padding: "3px 10px", fontSize: "12px", color: "#f0c040", fontWeight: "700" };
+      var secLblStyle = { fontSize: "11px", letterSpacing: "3px", textTransform: "uppercase", color: "#8b949e", marginBottom: "10px", display: "flex", alignItems: "center", gap: "8px" };
+      var navStyle = { position: "fixed", bottom: 0, left: 0, right: 0, background: "rgba(13,17,23,0.97)", borderTop: "1px solid #30363d", display: "flex", zIndex: 100 };
+
+      function rowStyle(chk) {
+        return { display: "flex", alignItems: "center", padding: "11px 13px", borderRadius: "8px", border: "1px solid " + (chk ? "rgba(240,192,64,0.27)" : "#30363d"), background: chk ? "rgba(240,192,64,0.07)" : "rgba(13,17,23,0.5)", marginBottom: "7px", cursor: "pointer", gap: "11px" };
+      }
+      function chkStyle(chk) {
+        return { width: "20px", height: "20px", borderRadius: "4px", flexShrink: 0, border: "2px solid " + (chk ? "#f0c040" : "#30363d"), background: chk ? "#f0c040" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", color: "#0d1117" };
+      }
+      function tabStyle(a) {
+        return { flex: 1, padding: "8px 4px", borderRadius: "6px", background: a ? "rgba(240,192,64,0.15)" : "transparent", border: "1px solid " + (a ? "rgba(240,192,64,0.4)" : "#30363d"), color: a ? "#f0c040" : "#8b949e", fontSize: "10px", letterSpacing: "1px", textTransform: "uppercase", cursor: "pointer", fontFamily: "Georgia, serif" };
+      }
+      function navBtnStyle(a) {
+        return { flex: 1, padding: "11px 0 7px", background: "none", border: "none", color: a ? "#f0c040" : "#8b949e", fontSize: "10px", letterSpacing: "1px", textTransform: "uppercase", cursor: "pointer", fontFamily: "Georgia, serif", borderTop: a ? "2px solid #f0c040" : "2px solid transparent" };
+      }
+      function zbtnStyle(zone, sel) {
+        var zc = ZONE_COLORS[zone] || {};
+        return { padding: "10px 12px", borderRadius: "8px", border: "2px solid " + (sel ? (zc.accent || "#f0c040") : "#30363d"), background: sel ? (zc.bg + "88") : "transparent", color: sel ? "#fff" : "#8b949e", fontSize: "12px", cursor: "pointer", fontFamily: "Georgia, serif", display: "flex", alignItems: "center", gap: "6px" };
+      }
+      function toastStyle(type) {
+        return { position: "fixed", top: "20px", left: "50%", transform: "translateX(-50%)", background: type === "error" ? "#cf222e" : "#238636", color: "#fff", padding: "10px 20px", borderRadius: "8px", fontSize: "13px", fontWeight: "700", zIndex: 999, letterSpacing: "1px", boxShadow: "0 4px 20px rgba(0,0,0,0.5)", whiteSpace: "nowrap" };
+      }
+
+      if (loading) {
+        return (
+          <div style={Object.assign({}, appStyle, { display: "flex", alignItems: "center", justifyContent: "center" })}>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: "32px", marginBottom: "12px" }}>🌍</div>
+              <div style={{ color: "#8b949e", letterSpacing: "3px", fontSize: "11px", textTransform: "uppercase" }}>Loading Mission...</div>
+            </div>
+          </div>
+        );
+      }
+
+      var categoryGroups = groupByCategory(DAILY_HABITS);
+
+      return (
+        <div style={appStyle}>
+          {toast && <div style={toastStyle(toast.type)}>{toast.msg}</div>}
+
+          {screen === "home" && (
+            <div style={wrapStyle}>
+              <div style={hdrStyle}>
+                <div style={{ fontSize: "48px", marginBottom: "8px" }}>🌍</div>
+                <h1 style={titleStyle}>Missionary Mode</h1>
+                <div style={lineStyle}></div>
+                <p style={subStyle}>Battle of the Zones - Highland 39th Ward</p>
+              </div>
+              <div style={cardStyle}>
+                <div style={secLblStyle}>Enter Your Name</div>
+                <input style={inputStyle} placeholder="Your name..." value={nameInput}
+                  onChange={function(e) { setNameInput(e.target.value); }}
+                  onKeyDown={function(e) { if (e.key === "Enter") handleLogin(); }} />
+                <button style={btnStyle} onClick={handleLogin}>Enter Mission Field</button>
+                <button style={Object.assign({}, btnStyle, ghostStyle)} onClick={function() { setScreen("leaderboard"); }}>View Zone Leaderboard</button>
+              </div>
+              <div style={{ textAlign: "center", color: "#8b949e", fontSize: "11px", letterSpacing: "2px", paddingBottom: "20px" }}>
+                MARCH 2026 - 4 WEEKS - 6 ZONES
+              </div>
+            </div>
+          )}
+
+          {screen === "register" && (
+            <div style={wrapStyle}>
+              <div style={hdrStyle}>
+                <div style={{ fontSize: "36px", marginBottom: "8px" }}>🗺️</div>
+                <h1 style={Object.assign({}, titleStyle, { fontSize: "20px" })}>Choose Your Zone</h1>
+                <div style={lineStyle}></div>
+                <p style={subStyle}>Welcome, {nameInput.trim()}!</p>
+              </div>
+              <div style={cardStyle}>
+                <div style={secLblStyle}>Select Your Mission Zone</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "12px" }}>
+                  {ZONES.map(function(zone) {
+                    return (
+                      <button key={zone} style={zbtnStyle(zone, zoneInput === zone)} onClick={function() { setZoneInput(zone); }}>
+                        <span>{ZONE_COLORS[zone] && ZONE_COLORS[zone].flag}</span>
+                        <span>{zone}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <button style={Object.assign({}, btnStyle, { opacity: zoneInput ? 1 : 0.5 })} onClick={handleRegister} disabled={!zoneInput}>
+                  Join {zoneInput || "Zone"}
+                </button>
+                <button style={Object.assign({}, btnStyle, ghostStyle)} onClick={function() { setScreen("home"); }}>Back</button>
+              </div>
+            </div>
+          )}
+
+          {screen === "dashboard" && currentUser && (
+            <div style={{ paddingBottom: "80px" }}>
+              <div style={wrapStyle}>
+                <div style={Object.assign({}, hdrStyle, { paddingBottom: "10px" })}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
+                    <button onClick={function() { setCurrentUser(null); setNameInput(""); setScreen("home"); }}
+                      style={{ background: "none", border: "none", color: "#8b949e", cursor: "pointer", fontSize: "20px" }}>←</button>
+                    <div style={{ textAlign: "center" }}>
+                      <div style={{ fontSize: "15px", fontWeight: "700", color: "#fff" }}>{currentUser.name}</div>
+                      <div style={{ fontSize: "11px", color: "#8b949e", letterSpacing: "1px" }}>
+                        {ZONE_COLORS[currentUser.zone] && ZONE_COLORS[currentUser.zone].flag} {currentUser.zone}
+                      </div>
+                    </div>
+                    <div style={badgeStyle}>⭐ {userTotal}</div>
+                  </div>
+
+                  <div style={{ position: "relative" }}>
+                    <button onClick={function() { setShowDatePicker(!showDatePicker); }} style={{ width: "100%", padding: "10px 14px", borderRadius: "8px", background: "rgba(240,192,64,0.1)", border: "1px solid rgba(240,192,64,0.4)", color: "#f0c040", fontFamily: "Georgia, serif", fontSize: "13px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <span>📅 {formatDate(selectedDateKey)}</span>
+                      <span style={{ fontSize: "11px", color: "#8b949e" }}>{getDayPts(selectedDateKey)}/9 pts {showDatePicker ? "▲" : "▼"}</span>
+                    </button>
+                    {showDatePicker && (
+                      <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 50, background: "#161b22", border: "1px solid #30363d", borderRadius: "10px", marginTop: "4px", maxHeight: "260px", overflowY: "auto", boxShadow: "0 8px 32px rgba(0,0,0,0.6)" }}>
+                        {missionDays.map(function(d) {
+                          var key = dateToKey(d);
+                          var pts = getDayPts(key);
+                          var isSel = key === selectedDateKey;
+                          var isT = key === todayKey;
+                          return (
+                            <div key={key} onClick={function() { setSelectedDateKey(key); setShowDatePicker(false); }}
+                              style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 16px", cursor: "pointer", background: isSel ? "rgba(240,192,64,0.12)" : "transparent", borderBottom: "1px solid rgba(48,54,61,0.13)" }}>
+                              <span style={{ color: isSel ? "#f0c040" : "#e6edf3", fontSize: "14px" }}>
+                                {isT ? "📅 Today" : DAY_NAMES[d.getDay()] + ", " + MONTH_NAMES[d.getMonth()] + " " + d.getDate()}
+                              </span>
+                              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                {pts > 0 && (
+                                  <div style={{ display: "flex", gap: "2px" }}>
+                                    {Array.from({ length: Math.min(pts, 9) }).map(function(_, i) {
+                                      return <div key={i} style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#f0c040" }}></div>;
+                                    })}
+                                  </div>
+                                )}
+                                <span style={{ fontSize: "11px", color: pts > 0 ? "#f0c040" : "#8b949e" }}>{pts}/9</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ display: "flex", gap: "6px", marginTop: "10px" }}>
+                    {["daily","weekly","bonus"].map(function(t) {
+                      return (
+                        <button key={t} style={tabStyle(activeTab === t)} onClick={function() { setActiveTab(t); }}>
+                          {t === "daily" ? "📅 Daily" : t === "weekly" ? "📋 Weekly" : "🔥 Bonus"}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {activeTab === "daily" && (
+                  <div style={cardStyle}>
+                    <div style={Object.assign({}, secLblStyle, { justifyContent: "space-between" })}>
+                      <span>{isToday ? "Today's Habits" : "Habits - " + formatDate(selectedDateKey)}</span>
+                      <span style={badgeStyle}>{getDayPts(selectedDateKey)} pts</span>
+                    </div>
+                    {!isToday && (
+                      <div style={{ background: "rgba(240,192,64,0.08)", border: "1px solid rgba(240,192,64,0.2)", borderRadius: "8px", padding: "10px 14px", marginBottom: "14px", fontSize: "12px", color: "#f0c040" }}>
+                        📝 Editing past day - check off what you completed
+                      </div>
+                    )}
+                    {Object.entries(categoryGroups).map(function(entry) {
+                      var cat = entry[0]; var habits = entry[1];
+                      var cs = CATEGORY_STYLES[cat];
+                      return (
+                        <div key={cat} style={{ marginBottom: "14px" }}>
+                          <div style={{ fontSize: "11px", color: cs.color, letterSpacing: "2px", textTransform: "uppercase", marginBottom: "7px" }}>
+                            {cs.icon} {cs.label}
+                          </div>
+                          {habits.map(function(h) {
+                            var chk = !!dayChecked[h.id];
+                            return (
+                              <div key={h.id} style={rowStyle(chk)} onClick={function() { toggleDaily(h.id); }}>
+                                <div style={chkStyle(chk)}>{chk ? "✓" : ""}</div>
+                                <span style={{ fontSize: "15px" }}>{h.icon}</span>
+                                <span style={{ flex: 1, fontSize: "13px", color: chk ? "#e6edf3" : "#8b949e" }}>{h.label}</span>
+                                <span style={{ fontSize: "11px", color: "#f0c040" }}>+{h.points}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {activeTab === "weekly" && (
+                  <div style={cardStyle}>
+                    <div style={Object.assign({}, secLblStyle, { justifyContent: "space-between" })}>
+                      <span>{selectedWeek ? "Week " + selectedWeek + " Challenges" : "Select a Mission Day"}</span>
+                      {selectedWeek && (
+                        <span style={badgeStyle}>
+                          {WEEKLY_CHALLENGES.reduce(function(s,c) { return s + (weekChecked[c.id] ? c.points : 0); }, 0)} pts
+                        </span>
+                      )}
+                    </div>
+                    {!selectedWeek ? (
+                      <div style={{ color: "#8b949e", fontSize: "13px", textAlign: "center", padding: "20px 0" }}>
+                        Select a day in March above to log weekly challenges.
+                      </div>
+                    ) : (
+                      <div>
+                        <div style={{ fontSize: "11px", color: "#8b949e", marginBottom: "12px" }}>
+                          Week {selectedWeek} - Mar {WEEK_RANGES[selectedWeek]}
+                        </div>
+                        {WEEKLY_CHALLENGES.map(function(c) {
+                          var chk = !!weekChecked[c.id];
+                          var cs = CATEGORY_STYLES[c.category];
+                          return (
+                            <div key={c.id} style={rowStyle(chk)} onClick={function() { toggleWeekly(c.id); }}>
+                              <div style={chkStyle(chk)}>{chk ? "✓" : ""}</div>
+                              <span style={{ fontSize: "19px" }}>{c.icon}</span>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: "13px", color: chk ? "#e6edf3" : "#8b949e" }}>{c.label}</div>
+                                <div style={{ fontSize: "10px", color: cs.color, textTransform: "uppercase", letterSpacing: "1px" }}>{cs.label}</div>
+                              </div>
+                              <span style={{ fontSize: "12px", color: "#f0c040", fontWeight: "700" }}>+{c.points}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {activeTab === "bonus" && (
+                  <div style={cardStyle}>
+                    <div style={Object.assign({}, secLblStyle, { justifyContent: "space-between" })}>
+                      <span>Bonus Challenges</span>
+                      <span style={badgeStyle}>
+                        {BONUS_CHALLENGES.reduce(function(s,b) { return s + (bonusChecked[b.id] ? b.points : 0); }, 0)} pts
+                      </span>
+                    </div>
+                    {BONUS_CHALLENGES.map(function(b) {
+                      var chk = !!bonusChecked[b.id];
+                      return (
+                        <div key={b.id} style={Object.assign({}, rowStyle(chk), { border: chk ? "1px solid rgba(240,192,64,0.4)" : "1px solid #30363d" })} onClick={function() { toggleBonus(b.id); }}>
+                          <div style={chkStyle(chk)}>{chk ? "✓" : ""}</div>
+                          <span style={{ fontSize: "19px" }}>{b.icon}</span>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: "13px", color: chk ? "#e6edf3" : "#8b949e" }}>{b.label}</div>
+                            <div style={{ fontSize: "11px", color: b.week === currentWeek ? "#f0c040" : "#8b949e", marginTop: "2px" }}>
+                              {b.week === currentWeek ? "🔥 Active This Week" : "Week " + b.week}
+                            </div>
+                          </div>
+                          <span style={{ fontSize: "12px", color: "#f0c040", fontWeight: "700" }}>+{b.points}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {screen === "leaderboard" && (
+            <div style={{ paddingBottom: "80px" }}>
+              <div style={wrapStyle}>
+                <div style={hdrStyle}>
+                  <div style={{ fontSize: "36px", marginBottom: "8px" }}>🏆</div>
+                  <h1 style={Object.assign({}, titleStyle, { fontSize: "20px" })}>Zone Leaderboard</h1>
+                  <div style={lineStyle}></div>
+                  <p style={subStyle}>Battle of the Zones - March 2026</p>
+                </div>
+
+                {zoneScores.map(function(entry, i) {
+                  var zc = ZONE_COLORS[entry.zone] || {};
+                  var medals = ["🥇","🥈","🥉"];
+                  return (
+                    <div key={entry.zone} style={Object.assign({}, cardStyle, { borderColor: i === 0 ? "rgba(240,192,64,0.4)" : "#30363d", background: i === 0 ? "rgba(240,192,64,0.07)" : "rgba(22,27,34,0.9)", marginBottom: "10px" })}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                        <div style={{ fontSize: "22px", width: "28px", textAlign: "center" }}>{medals[i] || ("#" + (i+1))}</div>
+                        <div style={{ fontSize: "22px" }}>{zc.flag}</div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: "15px", fontWeight: "700", color: "#fff" }}>{entry.zone}</div>
+                          <div style={{ fontSize: "11px", color: "#8b949e" }}>{entry.members} missionary{entry.members !== 1 ? "s" : ""}</div>
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                          <div style={{ fontSize: "20px", fontWeight: "900", color: "#f0c040" }}>{entry.total}</div>
+                          <div style={{ fontSize: "10px", color: "#8b949e", letterSpacing: "1px" }}>PTS</div>
+                        </div>
+                      </div>
+                      <div style={{ marginTop: "8px", height: "4px", background: "#30363d", borderRadius: "2px", overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: ((entry.total / maxZonePts) * 100) + "%", background: "linear-gradient(90deg, " + (zc.accent || "#f0c040") + ", #f0c040)", borderRadius: "2px" }}></div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                <div style={cardStyle}>
+                  <div style={secLblStyle}>Top Missionaries</div>
+                  {Object.values(allUsers).map(function(u) {
+                    return Object.assign({}, u, { total: calcUserPoints(u) });
+                  }).sort(function(a, b) { return b.total - a.total; }).slice(0, 20).map(function(u, i) {
+                    var zc = ZONE_COLORS[u.zone] || {};
+                    return (
+                      <div key={u.name} style={{ display: "flex", alignItems: "center", padding: "8px 0", borderBottom: "1px solid rgba(48,54,61,0.13)" }}>
+                        <div style={{ width: "22px", color: "#8b949e", fontSize: "11px" }}>#{i+1}</div>
+                        <div style={{ fontSize: "15px", marginRight: "8px" }}>{zc.flag || "🌍"}</div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: "13px", color: "#e6edf3" }}>{u.name}</div>
+                          <div style={{ fontSize: "11px", color: "#8b949e" }}>{u.zone}</div>
+                        </div>
+                        <div style={Object.assign({}, badgeStyle, { fontSize: "11px" })}>⭐ {u.total}</div>
+                      </div>
+                    );
+                  })}
+                  {Object.keys(allUsers).length === 0 && (
+                    <div style={{ textAlign: "center", color: "#8b949e", padding: "20px", fontSize: "13px" }}>No missionaries registered yet!</div>
+                  )}
+                </div>
+                {!currentUser && (
+                  <button style={Object.assign({}, btnStyle, { marginBottom: "20px" })} onClick={function() { setScreen("home"); }}>Back to Home</button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {(screen === "dashboard" || screen === "leaderboard") && currentUser && (
+            <div style={navStyle}>
+              <button style={navBtnStyle(screen === "dashboard")} onClick={function() { setScreen("dashboard"); }}>
+                <div style={{ fontSize: "17px" }}>📋</div>
+                <div>My Points</div>
+              </button>
+              <button style={navBtnStyle(screen === "leaderboard")} onClick={function() { setScreen("leaderboard"); }}>
+                <div style={{ fontSize: "17px" }}>🏆</div>
+                <div>Leaderboard</div>
+              </button>
+              <button style={navBtnStyle(false)} onClick={function() { setCurrentUser(null); setScreen("home"); setNameInput(""); }}>
+                <div style={{ fontSize: "17px" }}>🔄</div>
+                <div>Switch</div>
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+  </script>
+</body>
+</html>
