@@ -56,7 +56,7 @@ exports.handler = async function(event, context) {
   }
 
   const sql = getDb();
-  const path = event.path.replace("/.netlify/functions/api", "").replace("/api", "");
+  const path = event.path.replace("/.netlify/functions/api", "");
   const method = event.httpMethod;
 
   try {
