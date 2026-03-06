@@ -22,7 +22,7 @@
 
     var API = "/.netlify/functions/api";
 
-    var ZONES = ["New Jersey","Philippines","Slovenia","Oklahoma","South Africa","Venezuela","Adult Leaders"];
+    var ZONES = ["New Jersey","Philippines","Slovenia","Oklahoma","South Africa","Venezuela","YM Adult Leaders","YW Adult Leaders"];
 
     var ZONE_COLORS = {
       "New Jersey":    { bg: "#1a3a5c", accent: "#4a9eda", flag: "🗽" },
@@ -31,7 +31,8 @@
       "Oklahoma":      { bg: "#330000", accent: "#cc0000", flag: "🌾" },
       "South Africa":  { bg: "#007A4D", accent: "#FFB612", flag: "🇿🇦" },
       "Venezuela":     { bg: "#CF142B", accent: "#6699cc", flag: "🇻🇪" },
-      "Adult Leaders": { bg: "#2d1b69", accent: "#a78bfa", flag: "⭐" }
+      "YM Adult Leaders": { bg: "#1b3a69", accent: "#60a5fa", flag: "⭐" },
+      "YW Adult Leaders": { bg: "#2d1b69", accent: "#a78bfa", flag: "⭐" }
     };
 
     var MISSION_START = new Date("2026-03-01");
@@ -439,7 +440,7 @@
                 <button style={Object.assign({}, btnStyle, ghostStyle)} onClick={function() { setScreen("leaderboard"); }}>View Zone Leaderboard</button>
               </div>
               <div style={{ textAlign: "center", color: "#8b949e", fontSize: "11px", letterSpacing: "2px", paddingBottom: "20px" }}>
-                MARCH 2026 - 4 WEEKS - 7 ZONES
+                MARCH 2026 - 4 WEEKS - 8 ZONES
               </div>
             </div>
           )}
