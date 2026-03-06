@@ -151,8 +151,24 @@ function EditUserPanel({ user, onSave, onDelete, onClose, saving }) {
   const [days, setDays] = useState(JSON.parse(JSON.stringify(user.days || {})));
   const [wks, setWks] = useState(JSON.parse(JSON.stringify(user.weeks || {})));
   const [bonus, setBonus] = useState(JSON.parse(JSON.stringify(user.bonus || {})));
-  const [activeDate, setActiveDate] = useState(dates[dates.length - 1] || "");
-  const [activeWeek, setActiveWeek] = useState("W1");
+  const daysData = JSON.parse(JSON.stringify(user.days || {}));
+  const defaultDate = (() => {
+    const withData = dates.filter(d => {
+      const entry = daysData[d] || {};
+      return DAILY_HABITS.some(h => entry[h.id]);
+    });
+    return withData.length ? withData[withData.length - 1] : (dates[dates.length - 1] || "");
+  })();
+  const defaultWeek = (() => {
+    const weeksData = user.weeks || {};
+    const withData = getWeekKeys().filter(w => {
+      const entry = weeksData[w] || {};
+      return WEEKLY_CHALLENGES.some(c => entry[c.id]);
+    });
+    return withData.length ? withData[withData.length - 1] : "W1";
+  })();
+  const [activeDate, setActiveDate] = useState(defaultDate);
+  const [activeWeek, setActiveWeek] = useState(defaultWeek);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   function setHabit(dateKey, habitId, val) {
@@ -203,7 +219,10 @@ function EditUserPanel({ user, onSave, onDelete, onClose, saving }) {
           <div style={{ ...S.row, marginBottom: 12 }}>
             <label style={{ ...S.label, margin: 0 }}>Date:</label>
             <select style={S.select} value={activeDate} onChange={e => setActiveDate(e.target.value)}>
-              {dates.map(d => <option key={d} value={d}>{d}</option>)}
+              {dates.map(d => {
+                const pts = DAILY_HABITS.reduce((s, h) => s + ((days[d] || {})[h.id] ? h.points : 0), 0);
+                return <option key={d} value={d}>{d}{pts > 0 ? ` — ${pts} pts` : ""}</option>;
+              })}
             </select>
             <span style={S.tag("#60a5fa")}>
               {DAILY_HABITS.reduce((s, h) => s + ((days[activeDate] || {})[h.id] ? h.points : 0), 0)} pts
@@ -218,12 +237,16 @@ function EditUserPanel({ user, onSave, onDelete, onClose, saving }) {
           <div style={{ ...S.row, marginBottom: 12 }}>
             <label style={{ ...S.label, margin: 0 }}>Week:</label>
             <div style={{ display: "flex", gap: 8 }}>
-              {weeks.map(w => (
-                <button key={w} onClick={() => setActiveWeek(w)}
-                  style={{ ...S.ghostBtn, borderColor: activeWeek === w ? "#f0c040" : "#30363d", color: activeWeek === w ? "#f0c040" : "#8b949e" }}>
-                  {w}
-                </button>
-              ))}
+              {weeks.map(w => {
+                const wPts = WEEKLY_CHALLENGES.reduce((s, c) => s + ((wks[w] || {})[c.id] ? c.points : 0), 0);
+                const hasData = wPts > 0;
+                return (
+                  <button key={w} onClick={() => setActiveWeek(w)}
+                    style={{ ...S.ghostBtn, borderColor: activeWeek === w ? "#f0c040" : (hasData ? "#4ade8088" : "#30363d"), color: activeWeek === w ? "#f0c040" : (hasData ? "#4ade80" : "#8b949e") }}>
+                    {w}{hasData ? ` ${wPts}p` : ""}
+                  </button>
+                );
+              })}
             </div>
             <span style={S.tag("#a78bfa")}>
               {WEEKLY_CHALLENGES.reduce((s, c) => s + ((wks[activeWeek] || {})[c.id] ? c.points : 0), 0)} pts
