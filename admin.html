@@ -20,9 +20,7 @@ const { useState, useEffect, useCallback } = React;
 
 const ADMIN_PASSWORD = "highland39";
 
-const API_BASE = window.location.hostname === "localhost"
-  ? "http://localhost:8888/api"
-  : "/api";
+const API_BASE = "/.netlify/functions/api";
 
 const DAILY_HABITS = [
   { id: "morning_prayer",  label: "Morning Prayer",      points: 1, icon: "🌅" },
