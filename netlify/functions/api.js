@@ -62,6 +62,12 @@ exports.handler = async function(event, context) {
   try {
     await initDb(sql);
 
+    // GET /names - get all missionary names for dropdown
+    if (path === "/names" && method === "GET") {
+      const missionaries = await sql`SELECT name FROM missionaries ORDER BY name`;
+      return { statusCode: 200, headers, body: JSON.stringify(missionaries.map(m => m.name)) };
+    }
+
     // GET /users - get all missionaries for leaderboard
     if (path === "/users" && method === "GET") {
       const missionaries = await sql`SELECT * FROM missionaries ORDER BY name`;

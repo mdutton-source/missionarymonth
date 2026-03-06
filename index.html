@@ -160,6 +160,8 @@
       var [activeTab, setActiveTab] = useState("daily");
       var [loading, setLoading] = useState(false);
       var [toast, setToast] = useState(null);
+      var [knownNames, setKnownNames] = useState([]);
+      var [showNameDropdown, setShowNameDropdown] = useState(false);
       var [showDatePicker, setShowDatePicker] = useState(false);
       var [submitting, setSubmitting] = useState(false);
       var [pendingChanges, setPendingChanges] = useState(false);
@@ -210,6 +212,15 @@
         setTimeout(function() { setToast(null); }, 3000);
       }
 
+      async function loadKnownNames() {
+        try {
+          var names = await apiFetch("/names");
+          setKnownNames(names);
+        } catch(e) { /* silent fail */ }
+      }
+
+      useEffect(function() { loadKnownNames(); }, []);
+
       async function handleLogin() {
         var name = nameInput.trim();
         if (!name) return;
@@ -244,6 +255,7 @@
           setSelectedDateKey(todayKey);
           setScreen("dashboard");
           loadLeaderboard();
+          loadKnownNames();
           showToast("Welcome, " + name + "! 🎉");
         } catch(e) {
           if (e.message === "Name already taken") {
@@ -431,9 +443,20 @@
               </div>
               <div style={cardStyle}>
                 <div style={secLblStyle}>Enter Your Name</div>
-                <input style={inputStyle} placeholder="Your name..." value={nameInput}
-                  onChange={function(e) { setNameInput(e.target.value); }}
-                  onKeyDown={function(e) { if (e.key === "Enter") handleLogin(); }} />
+                <div style={{ position: "relative" }}>
+                  <input
+                    list="name-suggestions"
+                    style={Object.assign({}, inputStyle, { paddingRight: "36px" })}
+                    placeholder="Your name..."
+                    value={nameInput}
+                    onChange={function(e) { setNameInput(e.target.value); }}
+                    onKeyDown={function(e) { if (e.key === "Enter") handleLogin(); }}
+                    autoComplete="off"
+                  />
+                  <datalist id="name-suggestions">
+                    {knownNames.map(function(n) { return React.createElement("option", { key: n, value: n }); })}
+                  </datalist>
+                </div>
                 <button style={Object.assign({}, btnStyle, { opacity: loading ? 0.6 : 1 })} onClick={handleLogin} disabled={loading}>
                   {loading ? "Loading..." : "Enter Mission Field"}
                 </button>
