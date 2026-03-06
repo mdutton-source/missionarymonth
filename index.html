@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Missionary Mode – Battle of the Zones</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0d1117; font-family: Georgia, 'Times New Roman', serif; color: #e6edf3; }
+    ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: #0d1117; } ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 2px; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    const storage = {
+      get: (key) => { try { const v = localStorage.getItem(key); return v ? { value: v } : null; } catch(e) { return null; } },
+      set: (key, value) => { try { localStorage.setItem(key, value); return true; } catch(e) { return null; } }
+    };
+    const ZONES = ["New Jersey", "Philippines", "Slovenia", "Oklahoma", "South Africa", "Venezuela"];
+    const ZONE_COLORS = {
+      "New Jersey":   { bg: "#1a3a5c", accent: "#4a9eda", flag: "🗽" },
+      "Philippines":  { bg: "#0038a8", accent: "#ce1127", flag: "🇵🇭" },
+      "Slovenia":     { bg: "#003DA5", accent: "#6ca0dc", flag: "🇸🇮" },
+      "Oklahoma":     { bg: "#330000", accent: "#cc0000", flag: "🌾" },
+      "South Africa": { bg: "#007A4D", accent: "#FFB612", flag: "🇿🇦" },
+      "Venezuela":    { bg: "#CF142B", accent: "#6699cc", flag: "🇻🇪" },
+    };
+    const MISSION_START = new Date("2026-03-01");
+    const MISSION_END   = new Date("2026-03-31");
+    const WEEKS = [
+      { label: "Week 1", start: new Date("2026-03-01"), end: new Date("2026-03-07") },
+      { label: "Week 2", start: new Date("2026-03-08"), end: new Date("2026-03-14") },
+      { label: "Week 3", start: new Date("2026-03-15"), end: new Date("2026-03-21") },
+      { label: "Week 4", start: new Date("2026-03-22"), end: new Date("2026-03-31") },
+    ];
+    const DAILY_HABITS = [
+      { id: "morning_prayer",  label: "Morning Prayer",     category: "spiritual", points: 1, icon: "🌅" },
+      { id: "scripture_study", label: "Scripture Study",    category: "spiritual", points: 1, icon: "📖" },
+      { id: "evening_prayer",  label: "Evening Prayer",     category: "spiritual", points: 1, icon: "🌙" },
+      { id: "movement",        label: "30 Min Movement",    category: "physical",  points: 1, icon: "💪" },
+      { id: "on_time",         label: "On Time to School",  category: "physical",  points: 1, icon: "⏰" },
+      { id: "say_hi",          label: "Say Hi to 5 People", category: "social",    points: 1, icon: "👋" },
+      { id: "present",         label: "Be Fully Present",   category: "social",    points: 1, icon: "📵" },
+      { id: "gratitude",       label: "Write 3 Gratitudes", category: "emotional", points: 1, icon: "🙏" },
+      { id: "limit_social",    label: "Limit Social Media", category: "emotional", points: 1, icon: "🚫" },
+    ];
+    const WEEKLY_CHALLENGES = [
+      { id: "attend_church", label: "Attend Church (both hours)",            category: "spiritual", points: 5, icon: "⛪" },
+      { id: "laundry_meals", label: "Do Laundry OR Help Cook/Clean 2 Meals", category: "physical",  points: 5, icon: "🧺" },
+      { id: "open_doors",    label: "Open Doors & Greet Others",             category: "social",    points: 5, icon: "🚪" },
+      { id: "mindset_reset", label: "Mindset Reset (3 days)",                category: "emotional", points: 5, icon: "🧠" },
+    ];
+    const BONUS_CHALLENGES = [
+      { id: "week1_bonus", label: "Week 1: Attend Temple Baptism Session",     week: 1, points: 10, icon: "✨" },
+      { id: "week2_bonus", label: "Week 2: Missionary Circuit or 8K Steps",    week: 2, points: 10, icon: "🏋️" },
+      { id: "week3_bonus", label: "Week 3: Find the One (invite someone new)", week: 3, points: 10, icon: "🎯" },
+      { id: "week4_bonus", label: "Week 4: Bear Testimony + Journal",          week: 4, points: 10, icon: "💥" },
+    ];
+    const CATEGORY_STYLES = {
+      spiritual: { color: "#f0c040", label: "Spiritual", icon: "✨" },
+      physical:  { color: "#4ade80", label: "Physical",  icon: "💪" },
+      social:    { color: "#60a5fa", label: "Social",    icon: "🤝" },
+      emotional: { color: "#f472b6", label: "Emotional", icon: "🧠" },
+    };
+    const DAY_NAMES   = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+    const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    function dateToKey(d) { return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`; }
+    function getTodayKey() { return dateToKey(new Date()); }
+    function getCurrentWeek() { const now=new Date(); for(let i=0;i<WEEKS.length;i++) if(now>=WEEKS[i].start&&now<=WEEKS[i].end) return i+1; return 4; }
+    function getWeekForDate(d) { for(let i=0;i<WEEKS.length;i++) if(d>=WEEKS[i].start&&d<=WEEKS[i].end) return i+1; return null; }
+    function getMissionDays() { const days=[]; const today=new Date(); today.setHours(23,59,59,999); const cur=new Date(MISSION_START); while(cur<=today&&cur<=MISSION_END){days.push(new Date(cur));cur.setDate(cur.getDate()+1);} return days.reverse(); }
+    function calcUserPoints(user) { let pts=0; Object.values(user.days||{}).forEach(day=>DAILY_HABITS.forEach(h=>{if(day[h.id])pts+=h.points;})); Object.values(user.weeks||{}).forEach(wk=>WEEKLY_CHALLENGES.forEach(c=>{if(wk[c.id])pts+=c.points;})); BONUS_CHALLENGES.forEach(b=>{if((user.bonus||{})[b.id])pts+=b.points;}); return pts; }
+    function App() {
+      const [screen,setScreen]=useState("home");
+      const [currentUser,setCurrentUser]=useState(null);
+      const [nameInput,setNameInput]=useState("");
+      const [zoneInput,setZoneInput]=useState("");
+      const [allUsers,setAllUsers]=useState({});
+      const [selectedDateKey,setSelectedDateKey]=useState(getTodayKey());
+      const [activeTab,setActiveTab]=useState("daily");
+      const [loading,setLoading]=useState(true);
+      const [toast,setToast]=useState(null);
+      const [showDatePicker,setShowDatePicker]=useState(false);
+      const todayKey=getTodayKey(); const currentWeek=getCurrentWeek(); const missionDays=getMissionDays();
+      const selectedDate=(()=>{const p=selectedDateKey.split("-");return new Date(+p[0],+p[1]-1,+p[2]);})();
+      const selectedWeek=getWeekForDate(selectedDate); const weekKey=selectedWeek?`week${selectedWeek}`:null; const isToday=selectedDateKey===todayKey;
+      const dayChecked=currentUser?.days?.[selectedDateKey]||{}; const weekChecked=(weekKey&&currentUser?.weeks?.[weekKey])||{}; const bonusChecked=currentUser?.bonus||{};
+      useEffect(()=>{ try{const raw=storage.get("mission_users");if(raw)setAllUsers(JSON.parse(raw.value));}catch(e){} setLoading(false); },[]);
+      const showToast=(msg,type="success")=>{setToast({msg,type});setTimeout(()=>setToast(null),2500);};
+      const saveAllData=(users)=>{try{storage.set("mission_users",JSON.stringify(users));}catch(e){showToast("Error saving","error");}};
+      const handleLogin=()=>{ const name=nameInput.trim();if(!name)return; const key=name.toLowerCase(); if(allUsers[key]){setCurrentUser(allUsers[key]);setSelectedDateKey(todayKey);setScreen("dashboard");}else setScreen("register"); };
+      const handleRegister=()=>{ if(!zoneInput)return; const name=nameInput.trim();const key=name.toLowerCase(); const newUser={name,zone:zoneInput,days:{},weeks:{},bonus:{}}; const updated={...allUsers,[key]:newUser}; setAllUsers(updated);saveAllData(updated);setCurrentUser(newUser);setSelectedDateKey(todayKey);setScreen("dashboard");showToast(`Welcome, ${name}! 🎉`); };
+      const updateUser=(u)=>{ const key=u.name.toLowerCase(); const updated={...allUsers,[key]:u}; setCurrentUser(u);setAllUsers(updated);saveAllData(updated); };
+      const toggleDaily=(id)=>{ const cur=currentUser.days?.[selectedDateKey]||{};const was=!!cur[id]; updateUser({...currentUser,days:{...currentUser.days,[selectedDateKey]:{...cur,[id]:!was}}});if(!was)showToast("+1 point!"); };
+      const toggleWeekly=(id)=>{ if(!weekKey)return;const cur=currentUser.weeks?.[weekKey]||{};const was=!!cur[id]; updateUser({...currentUser,weeks:{...currentUser.weeks,[weekKey]:{...cur,[id]:!was}}});if(!was)showToast("+5 points!"); };
+      const toggleBonus=(id)=>{ const cur=currentUser.bonus||{};const was=!!cur[id]; updateUser({...currentUser,bonus:{...cur,[id]:!was}});if(!was)showToast("+10 BONUS points! 🔥"); };
+      const userTotal=currentUser?calcUserPoints(currentUser):0;
+      const getDayPts=(dk)=>{ if(!currentUser)return 0;const d=currentUser.days?.[dk]||{};return DAILY_HABITS.reduce((s,h)=>s+(d[h.id]?h.points:0),0); };
+      const formatDate=(dk)=>{ const p=dk.split("-");const d=new Date(+p[0],+p[1]-1,+p[2]);if(dk===todayKey)return"Today";const y=new Date();y.setDate(y.getDate()-1);if(dk===dateToKey(y))return"Yesterday";return`${DAY_NAMES[d.getDay()]}, ${MONTH_NAMES[d.getMonth()]} ${d.getDate()}`; };
+      const getZoneScores=()=>{ const sc={};ZONES.forEach(z=>{sc[z]={total:0,members:0};});Object.values(allUsers).forEach(u=>{if(sc[u.zone]!==undefined){sc[u.zone].total+=calcUserPoints(u);sc[u.zone].members+=1;}});return Object.entries(sc).map(([zone,data])=>({zone,...data})).sort((a,b)=>b.total-a.total); };
+      const S={
+        app:{minHeight:"100vh",background:"linear-gradient(135deg,#0d1117 0%,#161b22 50%,#0d1117 100%)",fontFamily:"Georgia,'Times New Roman',serif",color:"#e6edf3",position:"relative"},
+        globe:{position:"fixed",top:"-100px",right:"-100px",width:"400px",height:"400px",borderRadius:"50%",background:"radial-gradient(circle at 35% 35%,#1a3a5c,#0d1117)",border:"1px solid #30363d",opacity:0.25,zIndex:0,pointerEvents:"none"},
+        wrap:{maxWidth:"480px",margin:"0 auto",padding:"0 16px",position:"relative",zIndex:1},
+        hdr:{textAlign:"center",padding:"2
