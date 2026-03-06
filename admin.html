@@ -47,14 +47,22 @@ const BONUS_CHALLENGES = [
 ];
 const ZONES = ["New Jersey","Philippines","Slovenia","Oklahoma","South Africa","Venezuela","YM Adult Leaders","YW Adult Leaders"];
 
-const MISSION_START = new Date("2026-03-01");
 function getMissionDates() {
   const dates = [];
+  // Use local date strings throughout to avoid UTC timezone shifting
   const now = new Date();
-  const end = new Date("2026-03-28");
-  for (let d = new Date(MISSION_START); d <= Math.min(now, end); d.setDate(d.getDate() + 1)) {
-    const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,"0"), day = String(d.getDate()).padStart(2,"0");
-    dates.push(`${y}-${m}-${day}`);
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
+  const endStr = "2026-03-28";
+  const limitStr = todayStr < endStr ? todayStr : endStr;
+  // Build dates by incrementing year/month/day directly (no UTC issues)
+  let [y, mo, d] = [2026, 3, 1];
+  while (true) {
+    const str = `${y}-${String(mo).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    if (str > limitStr) break;
+    dates.push(str);
+    // Increment day
+    const dt = new Date(y, mo - 1, d + 1);
+    y = dt.getFullYear(); mo = dt.getMonth() + 1; d = dt.getDate();
   }
   return dates;
 }

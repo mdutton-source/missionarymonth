@@ -83,7 +83,7 @@
     var WEEK_RANGES = ["","1-7","8-14","15-21","22-31"];
 
     function dateToKey(d) {
-      return d.getFullYear() + "-" + (d.getMonth()+1) + "-" + d.getDate();
+      return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
     }
     function getTodayKey() { return dateToKey(new Date()); }
 
