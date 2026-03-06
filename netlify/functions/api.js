@@ -98,7 +98,74 @@ exports.handler = async function(event, context) {
       const name = decodeURIComponent(path.replace("/user/", ""));
       const missionaries = await sql`SELECT * FROM missionaries WHERE LOWER(name) = LOWER(${name})`;
       if (missionaries.length === 0) {
-        return { statusCode: 404, headers, body: JSON.stringify({ error: "Not found" }) };
+        // POST /admin/update-user - update name, zone, and all entries for a user
+    if (path === "/admin/update-user" && method === "POST") {
+      const body = JSON.parse(event.body);
+      const { originalName, name, zone, days, weeks, bonus } = body;
+      if (!originalName) return { statusCode: 400, headers, body: JSON.stringify({ error: "originalName required" }) };
+
+      // Update name/zone
+      await sql`UPDATE missionaries SET name = ${name}, zone = ${zone} WHERE LOWER(name) = LOWER(${originalName})`;
+
+      // Upsert all daily entries
+      if (days) {
+        for (const [dateKey, habits] of Object.entries(days)) {
+          await sql`
+            INSERT INTO daily_entries (missionary_name, date_key, habits)
+            VALUES (${name}, ${dateKey}, ${JSON.stringify(habits)})
+            ON CONFLICT (missionary_name, date_key) DO UPDATE SET habits = ${JSON.stringify(habits)}, submitted_at = NOW()
+          `;
+        }
+        // If name changed, update old entries
+        if (name !== originalName) {
+          await sql`UPDATE daily_entries SET missionary_name = ${name} WHERE LOWER(missionary_name) = LOWER(${originalName})`;
+        }
+      }
+
+      // Upsert all weekly entries
+      if (weeks) {
+        for (const [weekKey, challenges] of Object.entries(weeks)) {
+          await sql`
+            INSERT INTO weekly_entries (missionary_name, week_key, challenges)
+            VALUES (${name}, ${weekKey}, ${JSON.stringify(challenges)})
+            ON CONFLICT (missionary_name, week_key) DO UPDATE SET challenges = ${JSON.stringify(challenges)}, submitted_at = NOW()
+          `;
+        }
+        if (name !== originalName) {
+          await sql`UPDATE weekly_entries SET missionary_name = ${name} WHERE LOWER(missionary_name) = LOWER(${originalName})`;
+        }
+      }
+
+      // Upsert bonus
+      if (bonus !== undefined) {
+        await sql`
+          INSERT INTO bonus_entries (missionary_name, bonuses)
+          VALUES (${name}, ${JSON.stringify(bonus)})
+          ON CONFLICT (missionary_name) DO UPDATE SET bonuses = ${JSON.stringify(bonus)}, submitted_at = NOW()
+        `;
+        if (name !== originalName) {
+          await sql`UPDATE bonus_entries SET missionary_name = ${name} WHERE LOWER(missionary_name) = LOWER(${originalName})`;
+        }
+      }
+
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
+    }
+
+    // POST /admin/delete-user - delete a user and all their entries
+    if (path === "/admin/delete-user" && method === "POST") {
+      const body = JSON.parse(event.body);
+      const { name } = body;
+      if (!name) return { statusCode: 400, headers, body: JSON.stringify({ error: "name required" }) };
+
+      await sql`DELETE FROM daily_entries WHERE LOWER(missionary_name) = LOWER(${name})`;
+      await sql`DELETE FROM weekly_entries WHERE LOWER(missionary_name) = LOWER(${name})`;
+      await sql`DELETE FROM bonus_entries WHERE LOWER(missionary_name) = LOWER(${name})`;
+      await sql`DELETE FROM missionaries WHERE LOWER(name) = LOWER(${name})`;
+
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
+    }
+
+    return { statusCode: 404, headers, body: JSON.stringify({ error: "Not found" }) };
       }
       const m = missionaries[0];
       const dailyEntries = await sql`SELECT * FROM daily_entries WHERE missionary_name = ${m.name}`;

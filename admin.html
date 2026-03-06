@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Missionary Mode — Admin</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0d1117; color: #e6edf3; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; min-height: 100vh; }
+    ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #161b22; } ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useCallback } = React;
+
+const ADMIN_PASSWORD = "highland39";
+
+const API_BASE = window.location.hostname === "localhost"
+  ? "http://localhost:8888/api"
+  : "/api";
+
+const DAILY_HABITS = [
+  { id: "morning_prayer",  label: "Morning Prayer",      points: 1, icon: "🌅" },
+  { id: "scripture_study", label: "Scripture Study",     points: 1, icon: "📖" },
+  { id: "evening_prayer",  label: "Evening Prayer",      points: 1, icon: "🌙" },
+  { id: "movement",        label: "30 Min Movement",     points: 1, icon: "💪" },
+  { id: "on_time",         label: "On Time to School",   points: 1, icon: "⏰" },
+  { id: "say_hi",          label: "Say Hi to 5 People",  points: 1, icon: "👋" },
+  { id: "present",         label: "Be Fully Present",    points: 1, icon: "📵" },
+  { id: "gratitude",       label: "Write 3 Gratitudes",  points: 1, icon: "🙏" },
+  { id: "limit_social",    label: "Limit Social Media",  points: 1, icon: "🚫" },
+];
+const WEEKLY_CHALLENGES = [
+  { id: "attend_church", label: "Attend Church (both hours)",            points: 5, icon: "⛪" },
+  { id: "laundry_meals", label: "Do Laundry OR Help Cook/Clean 2 Meals", points: 5, icon: "🧺" },
+  { id: "open_doors",    label: "Open Doors and Greet Others",           points: 5, icon: "🚪" },
+  { id: "mindset_reset", label: "Mindset Reset (3 days)",                points: 5, icon: "🧠" },
+];
+const BONUS_CHALLENGES = [
+  { id: "week1_bonus", label: "Week 1: Attend Temple Baptism Session",     week: 1, points: 10, icon: "✨" },
+  { id: "week2_bonus", label: "Week 2: Missionary Circuit or 8K Steps",    week: 2, points: 10, icon: "🏋️" },
+  { id: "week3_bonus", label: "Week 3: Find the One (invite someone new)", week: 3, points: 10, icon: "🎯" },
+  { id: "week4_bonus", label: "Week 4: Bear Testimony + Journal",          week: 4, points: 10, icon: "💥" },
+];
+const ZONES = ["New Jersey","Philippines","Slovenia","Oklahoma","South Africa","Venezuela","YM Adult Leaders","YW Adult Leaders"];
+
+const MISSION_START = new Date("2026-03-01");
+function getMissionDates() {
+  const dates = [];
+  const now = new Date();
+  const end = new Date("2026-03-28");
+  for (let d = new Date(MISSION_START); d <= Math.min(now, end); d.setDate(d.getDate() + 1)) {
+    const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,"0"), day = String(d.getDate()).padStart(2,"0");
+    dates.push(`${y}-${m}-${day}`);
+  }
+  return dates;
+}
+function getWeekKeys() { return ["W1","W2","W3","W4"]; }
+
+async function apiFetch(path, opts = {}) {
+  const res = await fetch(API_BASE + path, opts);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Error");
+  return data;
+}
+
+function calcTotal(user) {
+  let pts = 0;
+  Object.values(user.days || {}).forEach(d => DAILY_HABITS.forEach(h => { if (d[h.id]) pts += h.points; }));
+  Object.values(user.weeks || {}).forEach(w => WEEKLY_CHALLENGES.forEach(c => { if (w[c.id]) pts += c.points; }));
+  BONUS_CHALLENGES.forEach(b => { if ((user.bonus || {})[b.id]) pts += b.points; });
+  return pts;
+}
+
+// ── Styles ──────────────────────────────────────────────────
+const S = {
+  wrap: { maxWidth: 900, margin: "0 auto", padding: "24px 16px" },
+  card: { background: "#161b22", border: "1px solid #30363d", borderRadius: 12, padding: 20, marginBottom: 16 },
+  title: { fontSize: 22, fontWeight: 800, letterSpacing: 2, color: "#f0c040", textTransform: "uppercase" },
+  sub: { color: "#8b949e", fontSize: 13, marginTop: 4 },
+  input: { width: "100%", background: "#0d1117", border: "1px solid #30363d", borderRadius: 8, padding: "10px 14px", color: "#e6edf3", fontSize: 15, outline: "none" },
+  btn: (color="#f0c040") => ({ background: color, color: color==="#f0c040" ? "#0d1117" : "#fff", border: "none", borderRadius: 8, padding: "10px 20px", fontWeight: 700, fontSize: 14, cursor: "pointer", letterSpacing: 1 }),
+  dangerBtn: { background: "#da3633", color: "#fff", border: "none", borderRadius: 8, padding: "8px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer" },
+  ghostBtn: { background: "transparent", color: "#8b949e", border: "1px solid #30363d", borderRadius: 8, padding: "8px 14px", fontWeight: 600, fontSize: 13, cursor: "pointer" },
+  label: { fontSize: 11, fontWeight: 700, letterSpacing: 2, color: "#8b949e", textTransform: "uppercase", marginBottom: 6, display: "block" },
+  row: { display: "flex", alignItems: "center", gap: 10, marginBottom: 8 },
+  tag: (color) => ({ background: color+"22", color, border: `1px solid ${color}44`, borderRadius: 6, padding: "2px 8px", fontSize: 12, fontWeight: 700 }),
+  check: { width: 18, height: 18, cursor: "pointer", accentColor: "#f0c040" },
+  toast: (ok) => ({ position: "fixed", top: 20, right: 20, background: ok ? "#238636" : "#da3633", color: "#fff", padding: "12px 20px", borderRadius: 10, fontWeight: 700, fontSize: 14, zIndex: 9999, boxShadow: "0 4px 20px rgba(0,0,0,0.5)" }),
+  section: { marginBottom: 24 },
+  sectionTitle: { fontSize: 13, fontWeight: 700, letterSpacing: 2, color: "#f0c040", textTransform: "uppercase", marginBottom: 12, paddingBottom: 8, borderBottom: "1px solid #21262d" },
+  select: { background: "#0d1117", border: "1px solid #30363d", borderRadius: 8, padding: "8px 12px", color: "#e6edf3", fontSize: 14, cursor: "pointer" },
+  grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 8 },
+  checkRow: { display: "flex", alignItems: "center", gap: 8, background: "#0d1117", borderRadius: 8, padding: "8px 12px", border: "1px solid #21262d" },
+};
+
+// ── Login Screen ──────────────────────────────────────────────
+function LoginScreen({ onLogin }) {
+  const [pw, setPw] = useState("");
+  const [err, setErr] = useState(false);
+  function attempt() {
+    if (pw === ADMIN_PASSWORD) { onLogin(); }
+    else { setErr(true); setTimeout(() => setErr(false), 2000); }
+  }
+  return (
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ ...S.card, width: 360 }}>
+        <div style={{ textAlign: "center", marginBottom: 24 }}>
+          <div style={{ fontSize: 36 }}>🔐</div>
+          <div style={{ ...S.title, fontSize: 18, marginTop: 8 }}>Admin Panel</div>
+          <div style={S.sub}>Missionary Mode — Highland 39th Ward</div>
+        </div>
+        <label style={S.label}>Password</label>
+        <input style={{ ...S.input, borderColor: err ? "#da3633" : "#30363d", marginBottom: 12 }}
+          type="password" placeholder="Enter admin password"
+          value={pw} onChange={e => setPw(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && attempt()} autoFocus />
+        {err && <div style={{ color: "#da3633", fontSize: 13, marginBottom: 8 }}>Incorrect password</div>}
+        <button style={{ ...S.btn(), width: "100%" }} onClick={attempt}>Enter Admin Panel</button>
+      </div>
+    </div>
+  );
+}
+
+// ── Habit Checkbox Grid ──────────────────────────────────────
+function HabitGrid({ items, checked, onChange }) {
+  return (
+    <div style={S.grid}>
+      {items.map(item => (
+        <label key={item.id} style={{ ...S.checkRow, cursor: "pointer", borderColor: checked[item.id] ? "#f0c040" : "#21262d" }}>
+          <input type="checkbox" style={S.check} checked={!!checked[item.id]} onChange={e => onChange(item.id, e.target.checked)} />
+          <span style={{ fontSize: 16 }}>{item.icon}</span>
+          <span style={{ fontSize: 13, flex: 1 }}>{item.label}</span>
+          <span style={{ ...S.tag("#f0c040"), fontSize: 11 }}>+{item.points}</span>
+        </label>
+      ))}
+    </div>
+  );
+}
+
+// ── Edit User Panel ──────────────────────────────────────────
+function EditUserPanel({ user, onSave, onDelete, onClose, saving }) {
+  const dates = getMissionDates();
+  const weeks = getWeekKeys();
+
+  const [name, setName] = useState(user.name);
+  const [zone, setZone] = useState(user.zone);
+  const [days, setDays] = useState(JSON.parse(JSON.stringify(user.days || {})));
+  const [wks, setWks] = useState(JSON.parse(JSON.stringify(user.weeks || {})));
+  const [bonus, setBonus] = useState(JSON.parse(JSON.stringify(user.bonus || {})));
+  const [activeDate, setActiveDate] = useState(dates[dates.length - 1] || "");
+  const [activeWeek, setActiveWeek] = useState("W1");
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  function setHabit(dateKey, habitId, val) {
+    setDays(prev => ({ ...prev, [dateKey]: { ...(prev[dateKey] || {}), [habitId]: val } }));
+  }
+  function setChallenge(weekKey, challengeId, val) {
+    setWks(prev => ({ ...prev, [weekKey]: { ...(prev[weekKey] || {}), [challengeId]: val } }));
+  }
+  function setBonus2(id, val) {
+    setBonus(prev => ({ ...prev, [id]: val }));
+  }
+
+  const total = calcTotal({ days, weeks: wks, bonus });
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 1000, overflowY: "auto", padding: "24px 16px" }}>
+      <div style={{ maxWidth: 780, margin: "0 auto", background: "#161b22", border: "1px solid #30363d", borderRadius: 16, padding: 24 }}>
+
+        {/* Header */}
+        <div style={{ ...S.row, justifyContent: "space-between", marginBottom: 20 }}>
+          <div>
+            <div style={S.title}>Edit Entry</div>
+            <div style={S.sub}>Modifying data for: <b style={{ color: "#e6edf3" }}>{user.name}</b></div>
+          </div>
+          <button style={S.ghostBtn} onClick={onClose}>✕ Close</button>
+        </div>
+
+        {/* Name & Zone */}
+        <div style={S.section}>
+          <div style={S.sectionTitle}>Profile</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div>
+              <label style={S.label}>Name</label>
+              <input style={S.input} value={name} onChange={e => setName(e.target.value)} />
+            </div>
+            <div>
+              <label style={S.label}>Zone</label>
+              <select style={{ ...S.select, width: "100%" }} value={zone} onChange={e => setZone(e.target.value)}>
+                {ZONES.map(z => <option key={z} value={z}>{z}</option>)}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Daily Habits */}
+        <div style={S.section}>
+          <div style={S.sectionTitle}>Daily Habits</div>
+          <div style={{ ...S.row, marginBottom: 12 }}>
+            <label style={{ ...S.label, margin: 0 }}>Date:</label>
+            <select style={S.select} value={activeDate} onChange={e => setActiveDate(e.target.value)}>
+              {dates.map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
+            <span style={S.tag("#60a5fa")}>
+              {DAILY_HABITS.reduce((s, h) => s + ((days[activeDate] || {})[h.id] ? h.points : 0), 0)} pts
+            </span>
+          </div>
+          {activeDate && <HabitGrid items={DAILY_HABITS} checked={days[activeDate] || {}} onChange={(id, val) => setHabit(activeDate, id, val)} />}
+        </div>
+
+        {/* Weekly Challenges */}
+        <div style={S.section}>
+          <div style={S.sectionTitle}>Weekly Challenges</div>
+          <div style={{ ...S.row, marginBottom: 12 }}>
+            <label style={{ ...S.label, margin: 0 }}>Week:</label>
+            <div style={{ display: "flex", gap: 8 }}>
+              {weeks.map(w => (
+                <button key={w} onClick={() => setActiveWeek(w)}
+                  style={{ ...S.ghostBtn, borderColor: activeWeek === w ? "#f0c040" : "#30363d", color: activeWeek === w ? "#f0c040" : "#8b949e" }}>
+                  {w}
+                </button>
+              ))}
+            </div>
+            <span style={S.tag("#a78bfa")}>
+              {WEEKLY_CHALLENGES.reduce((s, c) => s + ((wks[activeWeek] || {})[c.id] ? c.points : 0), 0)} pts
+            </span>
+          </div>
+          <HabitGrid items={WEEKLY_CHALLENGES} checked={wks[activeWeek] || {}} onChange={(id, val) => setChallenge(activeWeek, id, val)} />
+        </div>
+
+        {/* Bonus Challenges */}
+        <div style={S.section}>
+          <div style={S.sectionTitle}>Bonus Challenges</div>
+          <HabitGrid items={BONUS_CHALLENGES} checked={bonus} onChange={(id, val) => setBonus2(id, val)} />
+        </div>
+
+        {/* Total */}
+        <div style={{ ...S.card, background: "#0d1117", textAlign: "center", marginBottom: 20 }}>
+          <div style={{ color: "#8b949e", fontSize: 12, letterSpacing: 2, textTransform: "uppercase" }}>Total Points</div>
+          <div style={{ fontSize: 40, fontWeight: 900, color: "#f0c040" }}>{total}</div>
+        </div>
+
+        {/* Actions */}
+        <div style={{ display: "flex", gap: 12, justifyContent: "space-between" }}>
+          <div>
+            {!confirmDelete
+              ? <button style={S.dangerBtn} onClick={() => setConfirmDelete(true)}>🗑 Delete User</button>
+              : <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <span style={{ color: "#da3633", fontSize: 13, fontWeight: 700 }}>Are you sure?</span>
+                  <button style={S.dangerBtn} onClick={() => onDelete(user.name)}>Yes, delete</button>
+                  <button style={S.ghostBtn} onClick={() => setConfirmDelete(false)}>Cancel</button>
+                </div>
+            }
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button style={S.ghostBtn} onClick={onClose}>Cancel</button>
+            <button style={{ ...S.btn(), opacity: saving ? 0.6 : 1 }} onClick={() => onSave({ originalName: user.name, name, zone, days, weeks: wks, bonus })} disabled={saving}>
+              {saving ? "Saving..." : "💾 Save Changes"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Admin App ────────────────────────────────────────────
+function AdminApp() {
+  const [authed, setAuthed] = useState(false);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [editUser, setEditUser] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [search, setSearch] = useState("");
+
+  function showToast(msg, ok = true) {
+    setToast({ msg, ok });
+    setTimeout(() => setToast(null), 3000);
+  }
+
+  async function loadUsers() {
+    setLoading(true);
+    try {
+      const data = await apiFetch("/users");
+      setUsers(data);
+    } catch(e) { showToast("Failed to load users: " + e.message, false); }
+    finally { setLoading(false); }
+  }
+
+  useEffect(() => { if (authed) loadUsers(); }, [authed]);
+
+  async function handleSave({ originalName, name, zone, days, weeks, bonus }) {
+    setSaving(true);
+    try {
+      // Update profile (name/zone) if changed
+      await apiFetch("/admin/update-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ originalName, name, zone, days, weeks, bonus })
+      });
+      showToast("Saved successfully ✓");
+      setEditUser(null);
+      loadUsers();
+    } catch(e) { showToast("Save failed: " + e.message, false); }
+    finally { setSaving(false); }
+  }
+
+  async function handleDelete(name) {
+    setSaving(true);
+    try {
+      await apiFetch("/admin/delete-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name })
+      });
+      showToast("User deleted");
+      setEditUser(null);
+      loadUsers();
+    } catch(e) { showToast("Delete failed: " + e.message, false); }
+    finally { setSaving(false); }
+  }
+
+  if (!authed) return <LoginScreen onLogin={() => setAuthed(true)} />;
+
+  const filtered = users.filter(u => u.name.toLowerCase().includes(search.toLowerCase()) || u.zone.toLowerCase().includes(search.toLowerCase()));
+
+  return (
+    <div style={S.wrap}>
+      {toast && <div style={S.toast(toast.ok)}>{toast.msg}</div>}
+      {editUser && <EditUserPanel user={editUser} onSave={handleSave} onDelete={handleDelete} onClose={() => setEditUser(null)} saving={saving} />}
+
+      {/* Header */}
+      <div style={{ ...S.card, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div>
+          <div style={S.title}>⚙️ Admin Panel</div>
+          <div style={S.sub}>Missionary Mode — Highland 39th Ward · {users.length} participants</div>
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button style={S.ghostBtn} onClick={loadUsers} disabled={loading}>{loading ? "Loading..." : "↻ Refresh"}</button>
+          <a href="/" style={{ ...S.btn("#238636"), textDecoration: "none", display: "inline-block" }}>← Back to App</a>
+        </div>
+      </div>
+
+      {/* Search */}
+      <div style={{ marginBottom: 16 }}>
+        <input style={S.input} placeholder="Search by name or zone..." value={search} onChange={e => setSearch(e.target.value)} />
+      </div>
+
+      {/* User List */}
+      {loading && <div style={{ textAlign: "center", color: "#8b949e", padding: 40 }}>Loading participants...</div>}
+      {!loading && filtered.length === 0 && <div style={{ textAlign: "center", color: "#8b949e", padding: 40 }}>No participants found</div>}
+      {!loading && filtered.map(u => {
+        const total = calcTotal(u);
+        const dayCount = Object.keys(u.days || {}).length;
+        const weekCount = Object.keys(u.weeks || {}).length;
+        const bonusCount = Object.values(u.bonus || {}).filter(Boolean).length;
+        return (
+          <div key={u.name} style={{ ...S.card, display: "flex", alignItems: "center", gap: 16 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, fontSize: 16 }}>{u.name}</div>
+              <div style={{ ...S.sub, marginTop: 4 }}>{u.zone}</div>
+              <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                <span style={S.tag("#f0c040")}>{total} pts</span>
+                <span style={S.tag("#60a5fa")}>{dayCount} daily entries</span>
+                <span style={S.tag("#a78bfa")}>{weekCount} weekly entries</span>
+                {bonusCount > 0 && <span style={S.tag("#4ade80")}>{bonusCount} bonus</span>}
+              </div>
+            </div>
+            <button style={S.btn()} onClick={() => setEditUser(u)}>✏️ Edit</button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<AdminApp />);
+</script>
+</body>
+</html>
