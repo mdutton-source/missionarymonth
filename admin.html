@@ -66,7 +66,7 @@ function getMissionDates() {
   }
   return dates;
 }
-function getWeekKeys() { return ["W1","W2","W3","W4"]; }
+function getWeekKeys() { return ["week1","week2","week3","week4"]; }
 
 async function apiFetch(path, opts = {}) {
   const res = await fetch(API_BASE + path, opts);
@@ -156,10 +156,34 @@ function EditUserPanel({ user, onSave, onDelete, onClose, saving }) {
 
   const [name, setName] = useState(user.name);
   const [zone, setZone] = useState(user.zone);
-  const [days, setDays] = useState(JSON.parse(JSON.stringify(user.days || {})));
+  // Normalise date keys: "2026-3-6" -> "2026-03-06" so they match the dropdown
+  const normalisedDays = (() => {
+    const raw = user.days || {};
+    const out = {};
+    Object.entries(raw).forEach(([k, v]) => {
+      const parts = k.split("-");
+      if (parts.length === 3) {
+        const norm = `${parts[0]}-${parts[1].padStart(2,"0")}-${parts[2].padStart(2,"0")}`;
+        out[norm] = v;
+      } else { out[k] = v; }
+    });
+    return out;
+  })();
+  const [days, setDays] = useState(normalisedDays);
   const [wks, setWks] = useState(JSON.parse(JSON.stringify(user.weeks || {})));
   const [bonus, setBonus] = useState(JSON.parse(JSON.stringify(user.bonus || {})));
-  const daysData = JSON.parse(JSON.stringify(user.days || {}));
+  const daysData = (() => {
+    const raw = user.days || {};
+    const out = {};
+    Object.entries(raw).forEach(([k, v]) => {
+      const parts = k.split("-");
+      if (parts.length === 3) {
+        const norm = `${parts[0]}-${parts[1].padStart(2,"0")}-${parts[2].padStart(2,"0")}`;
+        out[norm] = v;
+      } else { out[k] = v; }
+    });
+    return out;
+  })();
   const defaultDate = (() => {
     const withData = dates.filter(d => {
       const entry = daysData[d] || {};
@@ -173,7 +197,7 @@ function EditUserPanel({ user, onSave, onDelete, onClose, saving }) {
       const entry = weeksData[w] || {};
       return WEEKLY_CHALLENGES.some(c => entry[c.id]);
     });
-    return withData.length ? withData[withData.length - 1] : "W1";
+    return withData.length ? withData[withData.length - 1] : "week1";
   })();
   const [activeDate, setActiveDate] = useState(defaultDate);
   const [activeWeek, setActiveWeek] = useState(defaultWeek);
@@ -245,13 +269,14 @@ function EditUserPanel({ user, onSave, onDelete, onClose, saving }) {
           <div style={{ ...S.row, marginBottom: 12 }}>
             <label style={{ ...S.label, margin: 0 }}>Week:</label>
             <div style={{ display: "flex", gap: 8 }}>
-              {weeks.map(w => {
+              {weeks.map((w, i) => {
                 const wPts = WEEKLY_CHALLENGES.reduce((s, c) => s + ((wks[w] || {})[c.id] ? c.points : 0), 0);
                 const hasData = wPts > 0;
+                const label = `W${i+1}`;
                 return (
                   <button key={w} onClick={() => setActiveWeek(w)}
                     style={{ ...S.ghostBtn, borderColor: activeWeek === w ? "#f0c040" : (hasData ? "#4ade8088" : "#30363d"), color: activeWeek === w ? "#f0c040" : (hasData ? "#4ade80" : "#8b949e") }}>
-                    {w}{hasData ? ` ${wPts}p` : ""}
+                    {label}{hasData ? ` ${wPts}p` : ""}
                   </button>
                 );
               })}
