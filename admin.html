@@ -75,9 +75,25 @@ async function apiFetch(path, opts = {}) {
   return data;
 }
 
+function normaliseDayKeys(days) {
+  // Collapse duplicate keys caused by old unpadded format "2026-3-6" vs "2026-03-06"
+  // Padded key wins if both exist
+  const out = {};
+  Object.entries(days || {}).forEach(([k, v]) => {
+    const parts = k.split("-");
+    const norm = parts.length === 3
+      ? `${parts[0]}-${parts[1].padStart(2,"0")}-${parts[2].padStart(2,"0")}`
+      : k;
+    // Padded (norm) key takes priority; only overwrite if not already set by padded version
+    if (!out[norm] || norm === k) out[norm] = v;
+  });
+  return out;
+}
+
 function calcTotal(user) {
   let pts = 0;
-  Object.values(user.days || {}).forEach(d => DAILY_HABITS.forEach(h => { if (d[h.id]) pts += h.points; }));
+  const days = normaliseDayKeys(user.days);
+  Object.values(days).forEach(d => DAILY_HABITS.forEach(h => { if (d[h.id]) pts += h.points; }));
   Object.values(user.weeks || {}).forEach(w => WEEKLY_CHALLENGES.forEach(c => { if (w[c.id]) pts += c.points; }));
   BONUS_CHALLENGES.forEach(b => { if ((user.bonus || {})[b.id]) pts += b.points; });
   return pts;

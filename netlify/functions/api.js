@@ -104,31 +104,28 @@ exports.handler = async function(event, context) {
       const { originalName, name, zone, days, weeks, bonus } = body;
       if (!originalName) return { statusCode: 400, headers, body: JSON.stringify({ error: "originalName required" }) };
 
+      // Update profile
       await sql`UPDATE missionaries SET name = ${name}, zone = ${zone} WHERE LOWER(name) = LOWER(${originalName})`;
+
+      // Delete ALL existing entries for this user (cleans up duplicate/unpadded keys), then re-insert
+      await sql`DELETE FROM daily_entries  WHERE LOWER(missionary_name) = LOWER(${originalName})`;
+      await sql`DELETE FROM weekly_entries WHERE LOWER(missionary_name) = LOWER(${originalName})`;
+      await sql`DELETE FROM bonus_entries  WHERE LOWER(missionary_name) = LOWER(${originalName})`;
 
       if (days) {
         for (const [dateKey, habits] of Object.entries(days)) {
-          await sql`INSERT INTO daily_entries (missionary_name, date_key, habits) VALUES (${name}, ${dateKey}, ${JSON.stringify(habits)}) ON CONFLICT (missionary_name, date_key) DO UPDATE SET habits = ${JSON.stringify(habits)}, submitted_at = NOW()`;
-        }
-        if (name !== originalName) {
-          await sql`UPDATE daily_entries SET missionary_name = ${name} WHERE LOWER(missionary_name) = LOWER(${originalName})`;
+          await sql`INSERT INTO daily_entries (missionary_name, date_key, habits) VALUES (${name}, ${dateKey}, ${JSON.stringify(habits)})`;
         }
       }
 
       if (weeks) {
         for (const [weekKey, challenges] of Object.entries(weeks)) {
-          await sql`INSERT INTO weekly_entries (missionary_name, week_key, challenges) VALUES (${name}, ${weekKey}, ${JSON.stringify(challenges)}) ON CONFLICT (missionary_name, week_key) DO UPDATE SET challenges = ${JSON.stringify(challenges)}, submitted_at = NOW()`;
-        }
-        if (name !== originalName) {
-          await sql`UPDATE weekly_entries SET missionary_name = ${name} WHERE LOWER(missionary_name) = LOWER(${originalName})`;
+          await sql`INSERT INTO weekly_entries (missionary_name, week_key, challenges) VALUES (${name}, ${weekKey}, ${JSON.stringify(challenges)})`;
         }
       }
 
       if (bonus !== undefined) {
-        await sql`INSERT INTO bonus_entries (missionary_name, bonuses) VALUES (${name}, ${JSON.stringify(bonus)}) ON CONFLICT (missionary_name) DO UPDATE SET bonuses = ${JSON.stringify(bonus)}, submitted_at = NOW()`;
-        if (name !== originalName) {
-          await sql`UPDATE bonus_entries SET missionary_name = ${name} WHERE LOWER(missionary_name) = LOWER(${originalName})`;
-        }
+        await sql`INSERT INTO bonus_entries (missionary_name, bonuses) VALUES (${name}, ${JSON.stringify(bonus)})`;
       }
 
       return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
