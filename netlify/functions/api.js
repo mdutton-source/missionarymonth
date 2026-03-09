@@ -131,6 +131,20 @@ exports.handler = async function(event, context) {
       return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
     }
 
+    // POST /admin/purge-dates - remove entries for specific date keys across all users
+    if (path === "/admin/purge-dates" && method === "POST") {
+      const body = JSON.parse(event.body);
+      const { dates } = body;
+      if (!dates || !Array.isArray(dates)) return { statusCode: 400, headers, body: JSON.stringify({ error: "dates array required" }) };
+
+      let deleted = 0;
+      for (const dateKey of dates) {
+        const result = await sql`DELETE FROM daily_entries WHERE date_key = ${dateKey}`;
+        deleted += result.length || 0;
+      }
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true, deletedRows: deleted, purgedDates: dates }) };
+    }
+
     // POST /admin/delete-user
     if (path === "/admin/delete-user" && method === "POST") {
       const body = JSON.parse(event.body);
