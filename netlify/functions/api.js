@@ -10,6 +10,9 @@ async function initDb(sql) {
   await sql`CREATE TABLE IF NOT EXISTS weekly_entries (id SERIAL PRIMARY KEY, missionary_name TEXT NOT NULL, week_key TEXT NOT NULL, challenges JSONB NOT NULL DEFAULT '{}', submitted_at TIMESTAMP DEFAULT NOW(), UNIQUE(missionary_name, week_key))`;
   await sql`CREATE TABLE IF NOT EXISTS bonus_entries (id SERIAL PRIMARY KEY, missionary_name TEXT NOT NULL UNIQUE, bonuses JSONB NOT NULL DEFAULT '{}', submitted_at TIMESTAMP DEFAULT NOW())`;
 
+  // One-time cleanup: remove Feb 28 entries
+  await sql`DELETE FROM daily_entries WHERE date_key IN ('2026-02-28','2026-2-28')`;
+
 }
 
 exports.handler = async function(event, context) {
