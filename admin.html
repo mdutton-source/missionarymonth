@@ -55,7 +55,7 @@ function getMissionDates() {
   const endStr = "2026-03-28";
   const limitStr = todayStr < endStr ? todayStr : endStr;
   // Build dates by incrementing year/month/day directly (no UTC issues)
-  let [y, mo, d] = [2026, 3, 4];  // March 4, 2026 start
+  let [y, mo, d] = [2026, 3, 12];  // March 12, 2026 start
   while (true) {
     const str = `${y}-${String(mo).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
     if (str > limitStr) break;
