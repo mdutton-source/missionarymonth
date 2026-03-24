@@ -146,6 +146,40 @@ exports.handler = async function(event, context) {
       return { statusCode: 200, headers, body: JSON.stringify({ success: true, deletedRows: deleted, purgedDates: dates }) };
     }
 
+    // POST /admin/merge-users - merge src into dst, then delete src
+    if (path === "/admin/merge-users" && method === "POST") {
+      const body = JSON.parse(event.body);
+      const { srcName, dstName } = body;
+      if (!srcName || !dstName) return { statusCode: 400, headers, body: JSON.stringify({ error: "srcName and dstName required" }) };
+
+      const srcDaily  = await sql`SELECT * FROM daily_entries  WHERE LOWER(missionary_name) = LOWER(${srcName})`;
+      const srcWeekly = await sql`SELECT * FROM weekly_entries WHERE LOWER(missionary_name) = LOWER(${srcName})`;
+      const srcBonus  = await sql`SELECT * FROM bonus_entries  WHERE LOWER(missionary_name) = LOWER(${srcName})`;
+
+      // Merge daily: dst wins on conflict
+      for (const row of srcDaily) {
+        await sql`INSERT INTO daily_entries (missionary_name, date_key, habits) VALUES (${dstName}, ${row.date_key}, ${JSON.stringify(row.habits)}) ON CONFLICT (missionary_name, date_key) DO NOTHING`;
+      }
+      // Merge weekly: dst wins on conflict
+      for (const row of srcWeekly) {
+        await sql`INSERT INTO weekly_entries (missionary_name, week_key, challenges) VALUES (${dstName}, ${row.week_key}, ${JSON.stringify(row.challenges)}) ON CONFLICT (missionary_name, week_key) DO NOTHING`;
+      }
+      // Merge bonus: combine keys, dst wins
+      if (srcBonus.length > 0) {
+        const dstBonus = await sql`SELECT * FROM bonus_entries WHERE LOWER(missionary_name) = LOWER(${dstName})`;
+        const merged = Object.assign({}, srcBonus[0].bonuses, dstBonus.length > 0 ? dstBonus[0].bonuses : {});
+        await sql`INSERT INTO bonus_entries (missionary_name, bonuses) VALUES (${dstName}, ${JSON.stringify(merged)}) ON CONFLICT (missionary_name) DO UPDATE SET bonuses = ${JSON.stringify(merged)}`;
+      }
+
+      // Delete src entirely
+      await sql`DELETE FROM daily_entries  WHERE LOWER(missionary_name) = LOWER(${srcName})`;
+      await sql`DELETE FROM weekly_entries WHERE LOWER(missionary_name) = LOWER(${srcName})`;
+      await sql`DELETE FROM bonus_entries  WHERE LOWER(missionary_name) = LOWER(${srcName})`;
+      await sql`DELETE FROM missionaries   WHERE LOWER(name)            = LOWER(${srcName})`;
+
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
+    }
+
     // POST /admin/delete-user
     if (path === "/admin/delete-user" && method === "POST") {
       const body = JSON.parse(event.body);
