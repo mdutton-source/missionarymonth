@@ -10,20 +10,6 @@ async function initDb(sql) {
   await sql`CREATE TABLE IF NOT EXISTS weekly_entries (id SERIAL PRIMARY KEY, missionary_name TEXT NOT NULL, week_key TEXT NOT NULL, challenges JSONB NOT NULL DEFAULT '{}', submitted_at TIMESTAMP DEFAULT NOW(), UNIQUE(missionary_name, week_key))`;
   await sql`CREATE TABLE IF NOT EXISTS bonus_entries (id SERIAL PRIMARY KEY, missionary_name TEXT NOT NULL UNIQUE, bonuses JSONB NOT NULL DEFAULT '{}', submitted_at TIMESTAMP DEFAULT NOW())`;
 
-  // One-time: merge "Annika" into "Annika Ellefsen"
-  const annikaSrc = await sql`SELECT * FROM daily_entries WHERE LOWER(missionary_name) = 'annika'`;
-  for (const row of annikaSrc) {
-    await sql`INSERT INTO daily_entries (missionary_name, date_key, habits) VALUES ('Annika Ellefsen', ${row.date_key}, ${JSON.stringify(row.habits)}) ON CONFLICT (missionary_name, date_key) DO NOTHING`;
-  }
-  const annikaWeekly = await sql`SELECT * FROM weekly_entries WHERE LOWER(missionary_name) = 'annika'`;
-  for (const row of annikaWeekly) {
-    await sql`INSERT INTO weekly_entries (missionary_name, week_key, challenges) VALUES ('Annika Ellefsen', ${row.week_key}, ${JSON.stringify(row.challenges)}) ON CONFLICT (missionary_name, week_key) DO NOTHING`;
-  }
-  await sql`DELETE FROM daily_entries  WHERE LOWER(missionary_name) = 'annika'`;
-  await sql`DELETE FROM weekly_entries WHERE LOWER(missionary_name) = 'annika'`;
-  await sql`DELETE FROM bonus_entries  WHERE LOWER(missionary_name) = 'annika'`;
-  await sql`DELETE FROM missionaries   WHERE LOWER(name)            = 'annika'`;
-
 }
 
 exports.handler = async function(event, context) {
