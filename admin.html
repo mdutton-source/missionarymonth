@@ -75,6 +75,17 @@ async function apiFetch(path, opts = {}) {
   return data;
 }
 
+const ZONE_COLORS = {
+  "New Jersey":       { bg: "#1a3a5c", accent: "#4a9eda", flag: "🗽" },
+  "Philippines":      { bg: "#0038a8", accent: "#ce1127", flag: "🇵🇭" },
+  "Slovenia":         { bg: "#003DA5", accent: "#6ca0dc", flag: "🇸🇮" },
+  "Oklahoma":         { bg: "#330000", accent: "#cc0000", flag: "🌾" },
+  "South Africa":     { bg: "#007A4D", accent: "#FFB612", flag: "🇿🇦" },
+  "Venezuela":        { bg: "#CF142B", accent: "#6699cc", flag: "🇻🇪" },
+  "YM Adult Leaders": { bg: "#1b3a69", accent: "#60a5fa", flag: "⭐" },
+  "YW Adult Leaders": { bg: "#2d1b69", accent: "#a78bfa", flag: "⭐" },
+};
+
 function normaliseDayKeys(days) {
   // Collapse duplicate keys caused by old unpadded format "2026-3-6" vs "2026-03-06"
   // Padded key wins if both exist
@@ -341,6 +352,70 @@ function EditUserPanel({ user, onSave, onDelete, onClose, saving }) {
 }
 
 // ── Main Admin App ────────────────────────────────────────────
+function LeaderboardView({ users }) {
+  // Aggregate by zone
+  const zoneMap = {};
+  users.forEach(u => {
+    const z = u.zone;
+    if (!zoneMap[z]) zoneMap[z] = { zone: z, members: [], total: 0 };
+    const pts = calcTotal(u);
+    zoneMap[z].members.push({ name: u.name, pts });
+    zoneMap[z].total += pts;
+  });
+
+  const zones = Object.values(zoneMap).sort((a, b) => b.total - a.total);
+
+  const medalColors = ["#FFD700", "#C0C0C0", "#CD7F32"];
+  const medals = ["🥇", "🥈", "🥉"];
+
+  return (
+    <div>
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ fontSize: 13, color: "#8b949e", letterSpacing: 2, textTransform: "uppercase", marginBottom: 16 }}>Zone Standings</div>
+        {zones.map((z, i) => {
+          const col = ZONE_COLORS[z.zone] || { bg: "#1c2128", accent: "#8b949e", flag: "🌍" };
+          const avgPts = z.members.length > 0 ? (z.total / z.members.length).toFixed(1) : 0;
+          return (
+            <div key={z.zone} style={{ background: col.bg, border: `1px solid ${col.accent}44`, borderRadius: 10, padding: "16px 20px", marginBottom: 12, display: "flex", alignItems: "center", gap: 16 }}>
+              <div style={{ fontSize: 28, minWidth: 40, textAlign: "center" }}>{medals[i] || `#${i+1}`}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: 17, color: col.accent }}>{col.flag} {z.zone}</div>
+                <div style={{ color: "#8b949e", fontSize: 12, marginTop: 3 }}>{z.members.length} members · {avgPts} pts avg</div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: 26, fontWeight: 700, color: col.accent }}>{z.total}</div>
+                <div style={{ fontSize: 11, color: "#8b949e" }}>total pts</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div>
+        <div style={{ fontSize: 13, color: "#8b949e", letterSpacing: 2, textTransform: "uppercase", marginBottom: 16 }}>Individual Rankings</div>
+        {users
+          .map(u => ({ ...u, pts: calcTotal(u) }))
+          .sort((a, b) => b.pts - a.pts)
+          .map((u, i) => {
+            const col = ZONE_COLORS[u.zone] || { bg: "#1c2128", accent: "#8b949e", flag: "🌍" };
+            return (
+              <div key={u.name} style={{ background: "#161b22", border: "1px solid #30363d", borderLeft: `3px solid ${col.accent}`, borderRadius: 8, padding: "10px 16px", marginBottom: 8, display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ minWidth: 28, color: i < 3 ? medalColors[i] : "#8b949e", fontWeight: 700, fontSize: 14 }}>
+                  {i < 3 ? medals[i] : `#${i+1}`}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600, fontSize: 14 }}>{u.name}</div>
+                  <div style={{ color: col.accent, fontSize: 12, marginTop: 2 }}>{col.flag} {u.zone}</div>
+                </div>
+                <div style={{ fontWeight: 700, fontSize: 18, color: "#f0c040" }}>{u.pts} <span style={{ fontSize: 12, color: "#8b949e", fontWeight: 400 }}>pts</span></div>
+              </div>
+            );
+          })}
+      </div>
+    </div>
+  );
+}
+
 function AdminApp() {
   const [authed, setAuthed] = useState(false);
   const [users, setUsers] = useState([]);
@@ -349,6 +424,7 @@ function AdminApp() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
   const [search, setSearch] = useState("");
+  const [activeTab, setActiveTab] = useState("leaderboard");
 
   function showToast(msg, ok = true) {
     setToast({ msg, ok });
@@ -401,6 +477,12 @@ function AdminApp() {
 
   const filtered = users.filter(u => u.name.toLowerCase().includes(search.toLowerCase()) || u.zone.toLowerCase().includes(search.toLowerCase()));
 
+  const tabStyle = (active) => ({
+    padding: "8px 20px", borderRadius: 6, border: "none", cursor: "pointer", fontWeight: 600, fontSize: 14,
+    background: active ? "#f0c040" : "transparent",
+    color: active ? "#0d1117" : "#8b949e",
+  });
+
   return (
     <div style={S.wrap}>
       {toast && <div style={S.toast(toast.ok)}>{toast.msg}</div>}
@@ -418,35 +500,50 @@ function AdminApp() {
         </div>
       </div>
 
-      {/* Search */}
-      <div style={{ marginBottom: 16 }}>
-        <input style={S.input} placeholder="Search by name or zone..." value={search} onChange={e => setSearch(e.target.value)} />
+      {/* Tabs */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 20, background: "#161b22", borderRadius: 8, padding: 6 }}>
+        <button style={tabStyle(activeTab === "leaderboard")} onClick={() => setActiveTab("leaderboard")}>🏆 Leaderboard</button>
+        <button style={tabStyle(activeTab === "participants")} onClick={() => setActiveTab("participants")}>👥 Participants</button>
       </div>
 
-      {/* User List */}
-      {loading && <div style={{ textAlign: "center", color: "#8b949e", padding: 40 }}>Loading participants...</div>}
-      {!loading && filtered.length === 0 && <div style={{ textAlign: "center", color: "#8b949e", padding: 40 }}>No participants found</div>}
-      {!loading && filtered.map(u => {
-        const total = calcTotal(u);
-        const dayCount = Object.keys(u.days || {}).length;
-        const weekCount = Object.keys(u.weeks || {}).length;
-        const bonusCount = Object.values(u.bonus || {}).filter(Boolean).length;
-        return (
-          <div key={u.name} style={{ ...S.card, display: "flex", alignItems: "center", gap: 16 }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 700, fontSize: 16 }}>{u.name}</div>
-              <div style={{ ...S.sub, marginTop: 4 }}>{u.zone}</div>
-              <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
-                <span style={S.tag("#f0c040")}>{total} pts</span>
-                <span style={S.tag("#60a5fa")}>{dayCount} daily entries</span>
-                <span style={S.tag("#a78bfa")}>{weekCount} weekly entries</span>
-                {bonusCount > 0 && <span style={S.tag("#4ade80")}>{bonusCount} bonus</span>}
-              </div>
-            </div>
-            <button style={S.btn()} onClick={() => setEditUser(u)}>✏️ Edit</button>
+      {/* Leaderboard Tab */}
+      {activeTab === "leaderboard" && (
+        loading
+          ? <div style={{ textAlign: "center", color: "#8b949e", padding: 40 }}>Loading...</div>
+          : <LeaderboardView users={users} />
+      )}
+
+      {/* Participants Tab */}
+      {activeTab === "participants" && (
+        <>
+          <div style={{ marginBottom: 16 }}>
+            <input style={S.input} placeholder="Search by name or zone..." value={search} onChange={e => setSearch(e.target.value)} />
           </div>
-        );
-      })}
+          {loading && <div style={{ textAlign: "center", color: "#8b949e", padding: 40 }}>Loading participants...</div>}
+          {!loading && filtered.length === 0 && <div style={{ textAlign: "center", color: "#8b949e", padding: 40 }}>No participants found</div>}
+          {!loading && filtered.map(u => {
+            const total = calcTotal(u);
+            const dayCount = Object.keys(u.days || {}).length;
+            const weekCount = Object.keys(u.weeks || {}).length;
+            const bonusCount = Object.values(u.bonus || {}).filter(Boolean).length;
+            return (
+              <div key={u.name} style={{ ...S.card, display: "flex", alignItems: "center", gap: 16 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, fontSize: 16 }}>{u.name}</div>
+                  <div style={{ ...S.sub, marginTop: 4 }}>{u.zone}</div>
+                  <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                    <span style={S.tag("#f0c040")}>{total} pts</span>
+                    <span style={S.tag("#60a5fa")}>{dayCount} daily entries</span>
+                    <span style={S.tag("#a78bfa")}>{weekCount} weekly entries</span>
+                    {bonusCount > 0 && <span style={S.tag("#4ade80")}>{bonusCount} bonus</span>}
+                  </div>
+                </div>
+                <button style={S.btn()} onClick={() => setEditUser(u)}>✏️ Edit</button>
+              </div>
+            );
+          })}
+        </>
+      )}
     </div>
   );
 }
