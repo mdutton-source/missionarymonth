@@ -442,25 +442,9 @@
                 <p style={subStyle}>Battle of the Zones - Highland 39th Ward</p>
               </div>
               <div style={cardStyle}>
-                <div style={secLblStyle}>Enter Your Name</div>
-                <div style={{ position: "relative" }}>
-                  <input
-                    list="name-suggestions"
-                    style={Object.assign({}, inputStyle, { paddingRight: "36px" })}
-                    placeholder="Your name..."
-                    value={nameInput}
-                    onChange={function(e) { setNameInput(e.target.value); }}
-                    onKeyDown={function(e) { if (e.key === "Enter") handleLogin(); }}
-                    autoComplete="off"
-                  />
-                  <datalist id="name-suggestions">
-                    {knownNames.map(function(n) { return React.createElement("option", { key: n, value: n }); })}
-                  </datalist>
-                </div>
-                <button style={Object.assign({}, btnStyle, { opacity: loading ? 0.6 : 1 })} onClick={handleLogin} disabled={loading}>
-                  {loading ? "Loading..." : "Enter Mission Field"}
-                </button>
-                <button style={Object.assign({}, btnStyle, ghostStyle)} onClick={function() { setScreen("leaderboard"); }}>View Zone Leaderboard</button>
+                <p style={{ textAlign: "center", color: "#e6edf3", fontSize: "16px", lineHeight: "1.7", padding: "8px 0" }}>
+                  Thank you for participating in Missionary Month! The contest ended on Wednesday, March 25 at noon.
+                </p>
               </div>
               <div style={{ textAlign: "center", color: "#8b949e", fontSize: "11px", letterSpacing: "2px", paddingBottom: "20px" }}>
                 MARCH 2026 - 4 WEEKS - 8 ZONES
@@ -468,8 +452,8 @@
             </div>
           )}
 
-          {/* REGISTER */}
-          {screen === "register" && (
+          {/* REGISTER - disabled while contest is paused */}
+          {screen === "register" && false && (
             <div style={wrapStyle}>
               <div style={hdrStyle}>
                 <div style={{ fontSize: "36px", marginBottom: "8px" }}>🗺️</div>
@@ -498,7 +482,7 @@
           )}
 
           {/* DASHBOARD */}
-          {screen === "dashboard" && currentUser && (
+          {screen === "dashboard" && false && currentUser && (
             <div style={{ paddingBottom: "80px" }}>
               <div style={wrapStyle}>
                 <div style={Object.assign({}, hdrStyle, { paddingBottom: "10px" })}>
@@ -700,7 +684,7 @@
           )}
 
           {/* LEADERBOARD */}
-          {screen === "leaderboard" && (
+          {screen === "leaderboard" && false && (
             <div style={{ paddingBottom: "80px" }}>
               <div style={wrapStyle}>
                 <div style={hdrStyle}>
@@ -765,7 +749,7 @@
           )}
 
           {/* BOTTOM NAV */}
-          {(screen === "dashboard" || screen === "leaderboard") && currentUser && (
+          {(screen === "dashboard" || screen === "leaderboard") && false && currentUser && (
             <div style={navStyle}>
               <button style={navBtnStyle(screen === "dashboard")} onClick={function() { setScreen("dashboard"); }}>
                 <div style={{ fontSize: "17px" }}>📋</div>
